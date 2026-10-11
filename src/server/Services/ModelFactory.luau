@@ -82,18 +82,19 @@ end
 function ModelFactory.createSeedModel(seed: SeedInfo): Model
 	local model = cloneAsset("Seeds", seed.Id)
 	if not model then
-		model = Instance.new("Model")
+		local placeholder = Instance.new("Model")
+		model = placeholder
 		local rarity = SeedConfig.getRarity(seed.Rarity)
 
 		-- Placeholder: esfera del color de la semilla con un aro de su rareza.
 		local body = makePart("Body", Enum.PartType.Ball, Vector3.new(2, 2, 2), seed.Color)
-		body.Parent = model
+		body.Parent = placeholder
 
 		local ring = makePart("RarityRing", Enum.PartType.Cylinder, Vector3.new(0.2, 2.8, 2.8), rarity.Color, Enum.Material.Neon)
 		ring.CFrame = body.CFrame * CFrame.Angles(0, 0, math.rad(90))
-		ring.Parent = model
+		ring.Parent = placeholder
 
-		model.PrimaryPart = body
+		placeholder.PrimaryPart = body
 	end
 
 	assert(model)
@@ -107,19 +108,20 @@ end
 function ModelFactory.createPlantModel(seed: SeedInfo): Model
 	local model = cloneAsset("Plants", seed.Id)
 	if not model then
-		model = Instance.new("Model")
+		local placeholder = Instance.new("Model")
+		model = placeholder
 
 		-- Placeholder: tallo verde + copa del color de la semilla.
 		local stem = makePart("Stem", Enum.PartType.Block, Vector3.new(0.6, 4, 0.6), Color3.fromRGB(70, 160, 60), Enum.Material.Grass)
 		stem.CFrame = CFrame.new(0, 2, 0)
-		stem.Parent = model
+		stem.Parent = placeholder
 
 		local head = makePart("Head", Enum.PartType.Ball, Vector3.new(3, 3, 3), seed.Color)
 		head.CFrame = CFrame.new(0, 5, 0)
-		head.Parent = model
+		head.Parent = placeholder
 
-		model.PrimaryPart = stem
-		model.WorldPivot = CFrame.new(0, 0, 0) -- base de la planta
+		placeholder.PrimaryPart = stem
+		placeholder.WorldPivot = CFrame.new(0, 0, 0) -- base de la planta
 	end
 
 	assert(model)

@@ -44,13 +44,14 @@ local function get(name: string): Instance
 
 	local folder = getFolder()
 	if RunService:IsServer() then
-		local remote = folder:FindFirstChild(name)
-		if not remote then
-			remote = Instance.new(className)
-			remote.Name = name
-			remote.Parent = folder
+		local existing = folder:FindFirstChild(name)
+		if existing then
+			return existing
 		end
-		return remote :: Instance
+		local remote: Instance = Instance.new(className :: any)
+		remote.Name = name
+		remote.Parent = folder
+		return remote
 	end
 	return folder:WaitForChild(name)
 end

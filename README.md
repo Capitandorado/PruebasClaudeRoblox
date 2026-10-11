@@ -82,7 +82,7 @@ Todas las semillas están en **`src/shared/SeedConfig.luau`**. Para añadir una,
 No hay que tocar nada más: la cinta, la interfaz, el crecimiento y la venta la usarán automáticamente.
 
 - **Probabilidades:** cambia `Weight` en `SeedConfig.Rarities`. Los pesos se normalizan, así que no tienen por qué sumar 100. Dentro de una rareza, todas sus semillas tienen la misma probabilidad.
-- **Nueva rareza:** añádela a `SeedConfig.Rarities` (con `Id`, `DisplayName`, `Color`, `Weight` y `Order`) y al tipo `RarityId` de ese mismo módulo.
+- **Nueva rareza:** añádela a `SeedConfig.Rarities` con `Id`, `DisplayName`, `Color`, `Weight` y `Order`.
 - **Dinero inicial, velocidad de la cinta, número de huecos, fases de crecimiento...:** están en `src/shared/GameConfig.luau`. Si subes el precio de las semillas comunes, recuerda revisar `StartingMoney`.
 
 ## Cómo sustituir los placeholders por modelos definitivos

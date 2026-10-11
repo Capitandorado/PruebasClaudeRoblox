@@ -31,13 +31,14 @@ local MapBuilder = {}
 --------------------------------------------------------------------------------
 
 local function getOrCreateFolder(parent: Instance, name: string): Folder
-	local folder = parent:FindFirstChild(name)
-	if not folder then
-		folder = Instance.new("Folder")
-		folder.Name = name
-		folder.Parent = parent
+	local existing = parent:FindFirstChild(name)
+	if existing and existing:IsA("Folder") then
+		return existing
 	end
-	return folder :: Folder
+	local folder = Instance.new("Folder")
+	folder.Name = name
+	folder.Parent = parent
+	return folder
 end
 
 local function makeBlock(props: { [string]: any }): Part

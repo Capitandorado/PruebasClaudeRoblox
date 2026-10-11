@@ -16,7 +16,9 @@
 	ventas) se toma y se valida en el servidor.
 ]]
 
-export type RarityId = "Common" | "Rare" | "Epic" | "Legendary"
+-- Id de rareza: "Common", "Rare", "Epic", "Legendary" o cualquiera que añadas
+-- en SeedConfig.Rarities.
+export type RarityId = string
 
 export type RarityInfo = {
 	Id: RarityId,
