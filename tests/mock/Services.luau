@@ -886,10 +886,13 @@ M.TextService = {
 	end,
 }
 
+local coreGuiDisabled = {}
 M.StarterGui = {
-	SetCoreGuiEnabled = function() end,
-	GetCoreGuiEnabled = function()
-		return true
+	SetCoreGuiEnabled = function(_, coreGuiType, enabled)
+		coreGuiDisabled[tostring(coreGuiType)] = enabled == false or nil
+	end,
+	GetCoreGuiEnabled = function(_, coreGuiType)
+		return not coreGuiDisabled[tostring(coreGuiType)]
 	end,
 	SetCore = function() end,
 	GetCore = function()

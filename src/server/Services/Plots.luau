@@ -100,11 +100,15 @@ local function buildPedestal(parent: Instance, plotIndex: number, slot: number, 
 		Transparency = 1,
 		Parent = model,
 	})
+	-- Holds the slot's attributes and anchors its labels. It is not raycastable: a tall
+	-- invisible box would catch taps aimed at the pedestal behind it, so clicks resolve
+	-- from the visible base, ring or artifact instead (Controllers/Placement).
 	local hitbox = Build.part({
 		Name = "Hitbox",
 		Size = Vector3.new(6, 9, 6),
 		CFrame = base * CFrame.new(0, 4.5, 0),
 		Transparency = 1,
+		CanQuery = false,
 		Parent = model,
 	})
 	hitbox:SetAttribute("SlotIndex", slot)
@@ -211,7 +215,7 @@ local function buildShell(index: number, parent: Instance): Model
 				Material = Enum.Material.Metal,
 				Parent = base,
 			})
-			local glow = Build.cylinder({
+			Build.cylinder({
 				Name = "ThrusterGlow",
 				Height = 0.4,
 				Diameter = 4,
@@ -220,7 +224,8 @@ local function buildShell(index: number, parent: Instance): Model
 				Material = Enum.Material.Neon,
 				Parent = base,
 			})
-			Build.light(glow, Color3.fromRGB(150, 90, 255), 2, 14)
+			-- No PointLight: the Neon glow is enough, and 48 lights under the plots (with
+			-- Future lighting) would cost frame time for nothing visible.
 			thruster:SetAttribute("Decor", true)
 		end
 	end
@@ -291,7 +296,8 @@ local function buildShell(index: number, parent: Instance): Model
 		Material = Enum.Material.Metal,
 		Parent = model,
 	})
-	local sign = Build.billboard(signPole, UDim2.fromOffset(360, 110), Vector3.new(0, 10, 0), 400)
+	-- In studs: readable on your own plot, small (not screen-filling) from the others.
+	local sign = Build.billboard(signPole, UDim2.fromScale(16, 5), Vector3.new(0, 10, 0), 260)
 	sign.Name = "Sign"
 	local ownerLabel = Build.label(sign, "Unclaimed Plot", Color3.new(1, 1, 1), UDim2.fromScale(1, 0.55))
 	ownerLabel.Name = "Owner"

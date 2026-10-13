@@ -255,7 +255,7 @@ function Leaderboards.init()
 	enabled = true
 	for _, board in BOARDS do
 		local ok, store = pcall(function()
-			return DataStoreService:GetOrderedDataStore(board.store)
+			return DataStoreService:GetOrderedDataStore(board.store .. Data.storeSuffix())
 		end)
 		if ok then
 			stores[board.id] = store

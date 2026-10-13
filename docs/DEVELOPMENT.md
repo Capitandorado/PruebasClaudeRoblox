@@ -22,6 +22,15 @@ rojo serve default.project.json   # + plugin de Rojo en Studio para sincronizar 
 lune run tests/run.luau inventory # solo las pruebas cuyo nombre contiene "inventory"
 ```
 
+Para sincronizar con `rojo serve`, abre primero `build/VoidFactory.rbxl` en Studio (no una
+plantilla nueva): la plantilla *Baseplate* añade un suelo de 2048 studs que tapa el vacío y
+otro SpawnLocation, y Rojo no puede cambiar en vivo ajustes como `Lighting.Technology` o
+`Workspace.StreamingEnabled`. Si el servidor detecta un `Baseplate`, lo avisa en Output.
+
+En Studio el juego usa sus propios DataStores (sufijo `_Studio`), así que probar con
+*API Services* activado y el panel de depuración nunca toca los datos ni las clasificaciones
+de los jugadores reales.
+
 ## Arquitectura en una frase
 
 El servidor es la única fuente de verdad: el cliente pide acciones a través de una única

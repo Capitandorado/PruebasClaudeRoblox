@@ -14,7 +14,7 @@ local Assets = require(Shared.Config.Assets)
 local World = {}
 
 World.HubRadius = 40
-World.VoidLevel = -60
+World.VoidLevel = PlotConfig.VoidLevel
 
 local root: Folder = nil :: any
 
@@ -136,7 +136,9 @@ local function buildHub(parent: Instance)
 		Transparency = 1,
 		Parent = hub,
 	})
-	local title = Build.billboard(titleAnchor, UDim2.fromOffset(600, 140), Vector3.zero, 600)
+	-- Sized in studs (scale) so it shrinks with distance instead of covering the screen
+	-- from every plot.
+	local title = Build.billboard(titleAnchor, UDim2.fromScale(44, 10), Vector3.zero, 600)
 	title.Name = "Title"
 	local titleLabel = Build.label(title, "VOID FACTORY", Color3.fromRGB(235, 225, 255))
 	titleLabel.FontFace = Font.new(Assets.Fonts.Display, Enum.FontWeight.Regular)
@@ -241,6 +243,14 @@ local function rescueLoop()
 end
 
 function World.init()
+	-- A place made from Roblox's Baseplate template fills the void with a 2048-stud floor.
+	local baseplate = workspace:FindFirstChild("Baseplate")
+	if baseplate and baseplate:IsA("BasePart") then
+		warn(
+			"[World] This place has the template Baseplate, which hides the void. "
+				.. "Open build/VoidFactory.rbxl (or delete Baseplate and SpawnLocation) before syncing with Rojo."
+		)
+	end
 	setupLighting()
 	root = Instance.new("Folder")
 	root.Name = "VoidFactory"

@@ -21,14 +21,18 @@ return function(t)
 		local menu = rt:findDescendant(ui, "Menu")
 		local grid = menu:FindFirstChildOfClass("UIGridLayout")
 		local desktopCells = grid.FillDirectionMaxCells
-		t.ok(desktopCells >= 9, "one column on a 1280x720 screen (" .. desktopCells .. ")")
+		t.eq(desktopCells, 5, "two columns of five on a 1280x720 screen")
+		local playerListOn = rt:asClient(player, function()
+			return game:GetService("StarterGui"):GetCoreGuiEnabled(Enum.CoreGuiType.PlayerList)
+		end)
+		t.eq(playerListOn, false, "Roblox's player list is hidden (it would cover the quest tracker)")
 		-- Rotate to a small phone in landscape.
 		Instance.setInternal(rt.camera, "ViewportSize", roblox.Vector2.new(812, 375))
 		rt:run(0.2, 0.1)
 		local scale = ui:FindFirstChildOfClass("UIScale").Scale
 		t.near(scale, 0.55, 1e-6, "UI scaled down for the phone")
 		t.ok(
-			grid.FillDirectionMaxCells <= 9,
+			grid.FillDirectionMaxCells <= 5,
 			"menu wraps on the phone (" .. grid.FillDirectionMaxCells .. " per column)"
 		)
 		local buttons = 0
@@ -42,6 +46,21 @@ return function(t)
 		local usedHeight = grid.FillDirectionMaxCells * 68
 		t.ok(usedHeight <= designHeight - 58, "menu fits vertically (" .. usedHeight .. " <= " .. designHeight .. ")")
 		t.ok(columns <= 2, "at most two columns")
+		t.eq(#rt:errors(), 0, errorsText(rt))
+	end)
+
+	t.test("a player falling into the void is caught by their own client", function()
+		local rt = Fixture.server({ isStudio = true })
+		local player = Fixture.join(rt, { userId = 1005, noClient = false })
+		rt:run(1, 0.1)
+		local session = Fixture.session(rt, player)
+		local spawn = rt:find(rt.workspace, "VoidFactory.Plots.Plot_" .. session.plot .. ".Spawn")
+		local rootPart = player.Character.HumanoidRootPart
+		rootPart.AssemblyLinearVelocity = roblox.Vector3.new(0, -180, 0)
+		player.Character:PivotTo(roblox.CFrame.new(0, -50, 0)) -- above the server's rescue level
+		rt:run(0.5, 0.05)
+		t.ok((rootPart.Position - spawn.Position).Magnitude < 8, "back on the spawn pad")
+		t.eq(rootPart.AssemblyLinearVelocity.Magnitude, 0, "fall speed cancelled")
 		t.eq(#rt:errors(), 0, errorsText(rt))
 	end)
 

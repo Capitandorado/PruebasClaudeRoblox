@@ -30,6 +30,11 @@ function V.integer(min: number, max: number): Validator
 	end
 end
 
+-- Roblox UserIds no longer fit in 32 bits, and Studio test players have negative ids.
+function V.userId(value: any): boolean
+	return type(value) == "number" and value == math.floor(value) and value ~= 0 and math.abs(value) < 2 ^ 53
+end
+
 function V.id(maxLength: number): Validator
 	return function(value)
 		return type(value) == "string" and #value > 0 and #value <= maxLength and not string.find(value, "[%c]")
@@ -74,7 +79,7 @@ Net.Actions = {
 	ClaimQuest = { args = { V.integer(1, 10) }, rate = 4, burst = 6 },
 	ClaimDaily = { args = {}, rate = 1, burst = 2 },
 	SetSetting = { args = { ID, V.boolean }, rate = 4, burst = 8 },
-	Visit = { args = { V.integer(1, 2 ^ 31 - 1) }, rate = 1, burst = 3 },
+	Visit = { args = { V.userId }, rate = 1, burst = 3 },
 	GoHome = { args = {}, rate = 1, burst = 3 },
 	GetLeaderboard = { args = {}, rate = 1, burst = 3 },
 	Admin = { args = { ID, V.any }, rate = 10, burst = 20 },

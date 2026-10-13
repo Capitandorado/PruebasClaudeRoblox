@@ -3,7 +3,6 @@
 -- second and, while placing, the exact Energy/s change each pedestal would give.
 -- All of it is local to this client.
 
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
@@ -27,7 +26,9 @@ local FactoryView = {}
 local Colors = Theme.Colors
 
 local labels: { [number]: BillboardGui } = {}
+local pulses: { [number]: BasePart } = {}
 local linkFolder: Folder? = nil
+local pulseFolder: Folder? = nil
 local labelFolder: Folder? = nil
 local previewKey: string? = nil
 
@@ -54,10 +55,18 @@ local function ensureFolders()
 		folder.Parent = workspace
 		linkFolder = folder
 	end
+	if not pulseFolder or not pulseFolder.Parent then
+		local folder = Instance.new("Folder")
+		folder.Name = "FactoryPulses"
+		folder.Parent = workspace
+		pulseFolder = folder
+	end
+	-- Labels live in a client-only workspace folder (they render through their Adornee):
+	-- PlayerGui is emptied on respawn, which would make them vanish.
 	if not labelFolder or not labelFolder.Parent then
 		local folder = Instance.new("Folder")
 		folder.Name = "FactoryLabels"
-		folder.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+		folder.Parent = workspace
 		labelFolder = folder
 	end
 end
@@ -242,7 +251,30 @@ function FactoryView.preview(key: string?)
 	FactoryView.refresh()
 end
 
--- Ring flash on every producing pedestal (once per server tick).
+-- Flash over every producing pedestal's ring (once per server tick). It uses a client-only
+-- overlay part: tweening the server's Ring would race its replicated colour changes and
+-- could leave an emptied pedestal lit on this client.
+local function pulsePart(slot: number, ring: BasePart): BasePart
+	local part = pulses[slot]
+	if not part or not part.Parent then
+		ensureFolders()
+		part = Build.part({
+			Name = "Pulse" .. slot,
+			Shape = Enum.PartType.Cylinder,
+			Size = ring.Size + Vector3.new(0.04, 0.1, 0.1),
+			CFrame = ring.CFrame,
+			Material = Enum.Material.Neon,
+			Transparency = 1,
+			CanQuery = false,
+			Parent = pulseFolder,
+		})
+		part.CanTouch = false
+		pulses[slot] = part
+	end
+	part.CFrame = ring.CFrame
+	return part
+end
+
 local function pulse()
 	local profile = Store.profile
 	if not profile or reduced() then
@@ -253,11 +285,13 @@ local function pulse()
 		local target = slot and pedestal(slot)
 		local ring = target and target:FindFirstChild("Ring")
 		local item = Items.parse(key)
-		if ring and ring:IsA("BasePart") and item then
+		if slot and ring and ring:IsA("BasePart") and item then
 			local rarity = Rarities.get(Items.rarityOf(item))
 			local color = if rarity then rarity.color else Colors.Accent
-			ring.Color = color:Lerp(Color3.new(1, 1, 1), 0.6)
-			TweenService:Create(ring, TweenInfo.new(0.6), { Color = color }):Play()
+			local part = pulsePart(slot, ring)
+			part.Color = color:Lerp(Color3.new(1, 1, 1), 0.6)
+			part.Transparency = 0.35
+			TweenService:Create(part, TweenInfo.new(0.6), { Transparency = 1 }):Play()
 		end
 	end
 end

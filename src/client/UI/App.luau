@@ -2,6 +2,7 @@
 -- announcement banner. Windows live in UI/Windows and register themselves here.
 
 local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -77,6 +78,11 @@ local function layer(name: string, zIndex: number): Frame
 end
 
 function App.start()
+	-- Roblox's player list would sit over the quest tracker and toasts (top right); the
+	-- game has its own Ranks window with every player's production and discoveries.
+	pcall(function()
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+	end)
 	local player = Players.LocalPlayer
 	local playerGui = player:WaitForChild("PlayerGui")
 	local gui = C.new("ScreenGui", {
@@ -214,7 +220,7 @@ local function buildWindow(name: string): Frame
 	})
 	C.button({
 		name = "Close",
-		text = "✕",
+		text = "X",
 		color = Colors.Bad,
 		size = UDim2.fromOffset(36, 36),
 		position = UDim2.new(1, -46, 0, 8),

@@ -15,6 +15,11 @@ Plot.Rows = 4
 Plot.SlotSpacing = 8
 Plot.MaxPlots = 8
 Plot.PlotRadius = 150
+-- Characters below this height are put back on their plot. The client rescues itself a
+-- little higher (it owns its character's physics, so it can also stop the fall); the
+-- server is the fallback.
+Plot.VoidLevel = -60
+Plot.ClientRescueMargin = 15
 
 -- Index 1 is the free starting layout (expansion level 0).
 Plot.Expansions = {

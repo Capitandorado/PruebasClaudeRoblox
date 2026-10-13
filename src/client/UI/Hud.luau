@@ -143,16 +143,17 @@ local function badge(button: Instance): Frame
 end
 
 local function buildMenu(parent: Frame)
+	-- Two columns, a little below centre: Roblox's chat window occupies the top-left corner.
 	local menu = C.new("Frame", {
 		Name = "Menu",
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 10, 0.5, 0),
+		Position = UDim2.new(0, 10, 0.5, 40),
 		Size = UDim2.fromOffset(150, 700),
 		BackgroundTransparency = 1,
 		Parent = parent,
 	})
-	-- Grid that fills top-to-bottom; on short screens (phones in landscape) it wraps into a
-	-- second column instead of running off the screen.
+	-- Grid that fills top-to-bottom in columns of at most five buttons (fewer on short
+	-- screens, so it never runs off the bottom).
 	local layout = C.new("UIGridLayout", {
 		CellSize = UDim2.fromOffset(70, 58),
 		CellPadding = UDim2.fromOffset(5, 5),
@@ -165,7 +166,7 @@ local function buildMenu(parent: Frame)
 	local function fit()
 		-- Height left for the menu: screen minus Roblox's top bar and a small margin.
 		local available = App.designViewport().Y - 58 / App.scale() - 24
-		layout.FillDirectionMaxCells = math.clamp(math.floor((available + 5) / 63), 4, 12)
+		layout.FillDirectionMaxCells = math.clamp(math.floor((available - 80 + 5) / 63), 3, 5)
 	end
 	fit()
 	local camera = workspace.CurrentCamera

@@ -17,6 +17,8 @@
    *Simulator*).
 2. **Game Settings → Security**:
    - Activa **Enable Studio Access to API Services** (para probar el guardado real en Studio).
+     En Studio el juego guarda en almacenes aparte (`..._Studio`): tus pruebas con el panel
+     de depuración no afectan a los datos ni a las clasificaciones de los jugadores.
 3. **Game Settings → Places → Server Size / Max Players: 8**. El juego tiene 8 parcelas; un
    noveno jugador recibe un mensaje claro y Roblox no debería enviarlo a un servidor lleno si
    el límite coincide.
@@ -28,7 +30,8 @@
 1. Con el juego publicado y *API Services* activado, entra, abre cajas y coloca artefactos.
 2. Sal, espera unos segundos y vuelve a entrar: tu fábrica debe estar igual.
 3. Opcional: en Studio, *View → Data Stores* (o el *Data Stores Manager* del Creator Dashboard)
-   muestra el almacén `VoidFactory_Players_v1`, clave `u_<UserId>`.
+   muestra el almacén `VoidFactory_Players_v1` (o `VoidFactory_Players_v1_Studio` para las
+   partidas de Studio), clave `u_<UserId>`.
 
 Los nombres de almacén están en `src/server/Services/Data.luau` (`Data.StoreName`) y
 `Leaderboards.luau`. **No los cambies** después de publicar o los jugadores empezarán de cero.

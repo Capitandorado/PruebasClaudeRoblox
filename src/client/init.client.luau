@@ -13,6 +13,7 @@ local Prompts = require(Client.Controllers.Prompts)
 local Announcements = require(Client.Controllers.Announcements)
 local FactoryView = require(Client.Controllers.FactoryView)
 local Rewards = require(Client.Controllers.Rewards)
+local Rescue = require(Client.Controllers.Rescue)
 
 -- The store must listen before the remotes deliver the first (queued) state.
 Store.start()
@@ -34,6 +35,7 @@ Prompts.start()
 Announcements.start()
 FactoryView.start()
 Rewards.start()
+Rescue.start()
 
 App.WindowChanged:Connect(function()
 	Placement.closePopup()

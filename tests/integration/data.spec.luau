@@ -159,6 +159,37 @@ return function(t)
 		end
 	end)
 
+	t.test("shutdown waits for a leaving player's save queued behind an autosave", function()
+		-- The race depends on how the polling loops line up, so try several timings.
+		for step = 0, 9 do
+			local backend = DataStore.newBackend()
+			local rt = Fixture.server({ backend = backend, jobId = "A" })
+			local player = Fixture.join(rt, { userId = 415 })
+			local session = Fixture.session(rt, player)
+			session.profile.energy = 777
+			backend.latency = 1 + step * 0.03
+			local data = dataModule(rt)
+			rt:asServer(function()
+				task.spawn(data.save, session, false) -- autosave in progress
+			end)
+			rt:run(0.3, 0.05)
+			rt:removePlayer(player) -- final save now waits for the autosave
+			t.ok(rt:shutdown(), "BindToClose finished in time")
+			backend.latency = 0.05
+			local record = peek(rt, 415)
+			t.eq(record.data.energy, 777)
+			t.eq(record.lock, nil, "final save released the lock (latency " .. 1 + step * 0.03 .. ")")
+		end
+	end)
+
+	t.test("Studio sessions save to their own stores, never to live data", function()
+		local backend = DataStore.newBackend()
+		local live = Fixture.server({ backend = backend, jobId = "live" })
+		t.eq(dataModule(live).StoreName, "VoidFactory_Players_v1")
+		local studio = Fixture.server({ backend = backend, jobId = "", isStudio = true })
+		t.eq(dataModule(studio).StoreName, "VoidFactory_Players_v1_Studio")
+	end)
+
 	t.test("Studio without API access falls back to memory and still works", function()
 		local backend = DataStore.newBackend()
 		backend.disabled = true

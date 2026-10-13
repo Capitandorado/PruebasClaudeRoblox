@@ -202,8 +202,10 @@ local function write(userId: number, profile: any, final: boolean): boolean
 	return false
 end
 
--- Saves a session. Concurrent calls for the same player are serialised.
-function Data.save(session: any, final: boolean?): boolean
+-- Saves in progress or waiting for their turn (BindToClose waits for all of them).
+local inFlight = 0
+
+local function saveSession(session: any, final: boolean?): boolean
 	local userId = session.userId
 	if session.finalSaved then
 		return true
@@ -226,6 +228,18 @@ function Data.save(session: any, final: boolean?): boolean
 		session.finalSaved = true
 	end
 	return success
+end
+
+-- Saves a session. Concurrent calls for the same player are serialised.
+function Data.save(session: any, final: boolean?): boolean
+	inFlight += 1
+	local ok, result = pcall(saveSession, session, final)
+	inFlight -= 1
+	if not ok then
+		warn("[Data] save crashed: " .. tostring(result))
+		return false
+	end
+	return result
 end
 
 -- Releases a lock without writing profile data (player left during loading).
@@ -286,14 +300,22 @@ local function onClose()
 			pending -= 1
 		end)
 	end
-	-- Also wait for saves started by PlayerRemoving while the server was closing.
+	-- Also wait for saves started by PlayerRemoving, including ones still queued behind an
+	-- autosave of the same player (those are not in `saving` yet).
 	local waited = 0
-	while (pending > 0 or next(saving) ~= nil) and waited < 25 do
+	while (pending > 0 or inFlight > 0 or next(saving) ~= nil) and waited < 25 do
 		waited += task.wait(0.25)
 	end
 end
 
+-- Studio play sessions (where the debug panel is open to everyone) use their own stores,
+-- so testing with API access never touches live player data or the global leaderboards.
+function Data.storeSuffix(): string
+	return if RunService:IsStudio() then "_Studio" else ""
+end
+
 function Data.init()
+	Data.StoreName ..= Data.storeSuffix()
 	local ok, result = pcall(function()
 		return DataStoreService:GetDataStore(Data.StoreName)
 	end)

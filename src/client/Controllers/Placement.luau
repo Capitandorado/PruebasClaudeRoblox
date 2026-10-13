@@ -2,6 +2,7 @@
 -- Works with mouse and touch (a tap is a short press that barely moved, so camera drags
 -- never trigger it). All changes are requests; the server decides.
 
+local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -200,7 +201,7 @@ function Placement.openPopup(slot: number, key: string?, own: boolean, locked: b
 	})
 	C.button({
 		name = "Close",
-		text = "✕",
+		text = "X",
 		color = Colors.PanelLight,
 		size = UDim2.fromOffset(30, 30),
 		position = UDim2.new(1, -30, 0, 0),
@@ -294,11 +295,8 @@ local function raycastPedestal(screenPosition: Vector3): BasePart?
 	if not result then
 		return nil
 	end
-	local hit = result.Instance
-	if hit.Name == "Hitbox" and hit:GetAttribute("SlotIndex") then
-		return hit
-	end
-	local current: Instance? = hit
+	-- The ray hits the pedestal's visible parts (base, ring, artifact); walk up to its slot.
+	local current: Instance? = result.Instance
 	while current and current ~= plots do
 		if string.match(current.Name, "^Slot_%d+$") then
 			local hitbox = current:FindFirstChild("Hitbox")
@@ -369,11 +367,23 @@ function Placement.start()
 			Placement.handlePedestal(hitbox)
 		end
 	end)
+	-- Roblox keeps Esc for its own menu, so placement also cancels with Q / Backspace /
+	-- gamepad B, and whenever the Roblox menu opens. The banner has a Cancel button too.
+	local cancelKeys = {
+		[Enum.KeyCode.Escape] = true,
+		[Enum.KeyCode.Q] = true,
+		[Enum.KeyCode.Backspace] = true,
+		[Enum.KeyCode.ButtonB] = true,
+	}
 	UserInputService.InputBegan:Connect(function(input, processed)
-		if not processed and input.KeyCode == Enum.KeyCode.Escape then
+		if not processed and cancelKeys[input.KeyCode] then
 			Placement.cancel()
 			closePopup()
 		end
+	end)
+	GuiService.MenuOpened:Connect(function()
+		Placement.cancel()
+		closePopup()
 	end)
 	-- Markers follow the profile while in placement mode.
 	Store.watch({ "placed", "expansion" }, function()

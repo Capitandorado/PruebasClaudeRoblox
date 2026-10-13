@@ -15,6 +15,7 @@ export type PartProps = {
 	Transparency: number?,
 	Reflectance: number?,
 	CanCollide: boolean?,
+	CanQuery: boolean?,
 	CastShadow: boolean?,
 	Class: string?,
 	Parent: Instance?,
@@ -31,6 +32,9 @@ function Build.part(props: PartProps): BasePart
 	part.Transparency = props.Transparency or 0
 	part.Reflectance = props.Reflectance or 0
 	part.CanCollide = if props.CanCollide == nil then false else props.CanCollide
+	if props.CanQuery ~= nil then
+		part.CanQuery = props.CanQuery
+	end
 	part.CastShadow = if props.CastShadow == nil then false else props.CastShadow
 	part.TopSurface = Enum.SurfaceType.Smooth
 	part.BottomSurface = Enum.SurfaceType.Smooth
