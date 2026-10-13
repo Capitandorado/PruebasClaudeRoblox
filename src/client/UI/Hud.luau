@@ -40,6 +40,7 @@ local refs: { [string]: any } = {}
 local displayedEnergy = 0
 local badges: { [string]: Frame } = {}
 local questReady = false
+local questSeen = false
 
 local MENU = {
 	{ id = "Inventory", icon = "🎒", label = "Items" },
@@ -98,6 +99,7 @@ local function buildTopBar(parent: Frame)
 		LayoutOrder = 1,
 		Parent = bar,
 	})
+	refs.energyPill = pill
 	C.gradient(Color3.fromRGB(60, 50, 110), Color3.fromRGB(28, 24, 52)).Parent = pill
 	C.text({
 		Name = "Icon",
@@ -197,6 +199,45 @@ local function buildStoreButton(parent: Frame)
 		end
 	end)
 	refs.storeButton = button
+end
+
+-- "+⚡12K" rising into the counter (or "−⚡5K" dropping from it) for gains and spends that
+-- are bigger than normal production ticks.
+local function energyPopup(delta: number)
+	local pill = refs.energyPill :: Frame?
+	if not pill then
+		return
+	end
+	local positive = delta > 0
+	local label = C.text({
+		Name = "EnergyPopup",
+		Text = (if positive then "+⚡" else "−⚡") .. Format.number(math.abs(delta)),
+		FontFace = Theme.Fonts.Bold,
+		TextSize = 22,
+		TextColor3 = if positive then Colors.Good else Colors.Bad,
+		TextStrokeTransparency = 0.3,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 1, if positive then 26 else 2),
+		Size = UDim2.fromOffset(260, 28),
+		ZIndex = 5,
+		Parent = pill,
+	})
+	C.tween(label, 1.1, {
+		Position = UDim2.new(0.5, 0, 1, if positive then -6 else 34),
+		TextTransparency = 1,
+		TextStrokeTransparency = 1,
+	}, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+	task.delay(1.15, function()
+		label:Destroy()
+	end)
+	local bump = pill:FindFirstChild("Bump") :: UIScale?
+	if not bump then
+		bump = C.new("UIScale", { Name = "Bump", Parent = pill })
+	end
+	local scale = bump :: UIScale
+	scale.Scale = if positive then 1.08 else 0.95
+	C.tween(scale, 0.35, { Scale = 1 }, Enum.EasingStyle.Back)
 end
 
 local function badge(button: Instance): Frame
@@ -447,6 +488,7 @@ local function buildQuestTracker(parent: Frame)
 		Children = { C.corner(), C.stroke() },
 		Parent = parent,
 	})
+	refs.questTracker = tracker
 	C.padding(10).Parent = tracker
 	C.text({
 		Text = "📜 QUEST",
@@ -665,7 +707,17 @@ local function refreshQuest()
 		refs.questText.Text = text .. string.format("  (%s/%s)", Format.number(progress), Format.number(best.target))
 		refs.setQuest(bestRatio, Colors.Accent)
 	end
-	questReady = bestRatio >= 1
+	local ready = bestRatio >= 1
+	if ready and not questReady and questSeen and refs.questTracker then
+		-- A quest just completed: make the tracker jump so it gets claimed.
+		local scale = refs.questTracker:FindFirstChildOfClass("UIScale")
+			or C.new("UIScale", { Parent = refs.questTracker })
+		scale.Scale = 1.12
+		C.tween(scale, 0.45, { Scale = 1 }, Enum.EasingStyle.Elastic)
+		Sound.play("QuestComplete")
+	end
+	questReady = ready
+	questSeen = true
 end
 
 local function refreshBadges()
@@ -776,6 +828,22 @@ function Hud.start()
 
 	Store.watch({ "machines" }, function()
 		refreshChips()
+	end)
+	local lastEnergy: number? = nil
+	Store.watch({ "energy" }, function(changed)
+		local profile = Store.profile
+		if not profile then
+			return
+		end
+		local previous = lastEnergy
+		lastEnergy = profile.energy
+		if changed.all or not previous then
+			return -- full syncs (join, rebirth) are not gains or spends
+		end
+		local delta = profile.energy - previous
+		if math.abs(delta) > math.max(Store.production().total * 2.5, 20) then
+			energyPopup(delta)
+		end
 	end)
 	Store.Changed:Connect(function()
 		refreshTop()

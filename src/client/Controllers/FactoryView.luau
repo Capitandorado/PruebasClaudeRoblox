@@ -275,10 +275,136 @@ local function pulsePart(slot: number, ring: BasePart): BasePart
 	return part
 end
 
+-- Every few seconds a small "+⚡X" rises from the nearest producing pedestals.
+local GAIN_EVERY = 3
+local GAIN_RANGE = 70
+local GAIN_MAX = 12
+local pulseCount = 0
+
+local function floatGain(hitbox: BasePart, amount: number)
+	local gui = C.new("BillboardGui", {
+		Name = "Gain",
+		Adornee = hitbox,
+		Size = UDim2.fromScale(5, 1.3),
+		StudsOffsetWorldSpace = Vector3.new(0, 2.5, 0),
+		LightInfluence = 0,
+		MaxDistance = GAIN_RANGE,
+		ResetOnSpawn = false,
+		Parent = pulseFolder,
+	})
+	local label = C.text({
+		Name = "Text",
+		Text = "+⚡" .. Format.number(amount),
+		FontFace = Theme.Fonts.Bold,
+		TextScaled = true,
+		TextColor3 = Colors.Energy,
+		TextStrokeTransparency = 0.4,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Size = UDim2.fromScale(1, 1),
+		Parent = gui,
+	})
+	TweenService
+		:Create(gui, TweenInfo.new(1.3, Enum.EasingStyle.Quad), { StudsOffsetWorldSpace = Vector3.new(0, 5, 0) })
+		:Play()
+	TweenService:Create(
+		label,
+		TweenInfo.new(1.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+		{ TextTransparency = 1, TextStrokeTransparency = 1 }
+	):Play()
+	task.delay(1.35, function()
+		gui:Destroy()
+	end)
+end
+
+local function showGains(profile: any)
+	local camera = workspace.CurrentCamera
+	if not camera then
+		return
+	end
+	local production = Store.production()
+	local nearby = {}
+	for slotKey in profile.placed do
+		local slot = tonumber(slotKey)
+		local eps = slot and production.perSlot[slot]
+		local target = slot and pedestal(slot)
+		local hitbox = target and target:FindFirstChild("Hitbox")
+		if eps and eps > 0 and hitbox and hitbox:IsA("BasePart") then
+			local distance = (hitbox.Position - camera.CFrame.Position).Magnitude
+			if distance < GAIN_RANGE then
+				table.insert(nearby, { hitbox = hitbox, eps = eps, distance = distance })
+			end
+		end
+	end
+	table.sort(nearby, function(a, b)
+		return a.distance < b.distance
+	end)
+	ensureFolders()
+	for index, entry in nearby do
+		if index > GAIN_MAX then
+			break
+		end
+		floatGain(entry.hitbox, entry.eps * GAIN_EVERY)
+	end
+end
+
+-- A ring of light expands from a pedestal when an artifact lands on it.
+local function placeRing(slot: number, color: Color3)
+	local target = pedestal(slot)
+	local ring = target and target:FindFirstChild("Ring")
+	if not ring or not ring:IsA("BasePart") or reduced() then
+		return
+	end
+	ensureFolders()
+	local wave = Build.part({
+		Name = "PlaceWave",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.2, 4.4, 4.4),
+		CFrame = ring.CFrame,
+		Color = color,
+		Material = Enum.Material.Neon,
+		Transparency = 0.1,
+		CanQuery = false,
+		Parent = pulseFolder,
+	})
+	wave.CanTouch = false
+	TweenService
+		:Create(wave, TweenInfo.new(0.7, Enum.EasingStyle.Quad), { Size = Vector3.new(0.1, 14, 14), Transparency = 1 })
+		:Play()
+	task.delay(0.75, function()
+		wave:Destroy()
+	end)
+end
+
+local lastPlaced: { [string]: string }? = nil
+
+local function onPlacedChanged(changed: { [string]: boolean })
+	local profile = Store.profile
+	if not profile then
+		return
+	end
+	local previous = lastPlaced
+	lastPlaced = table.clone(profile.placed)
+	if not previous or changed.all then
+		return
+	end
+	for slotKey, key in profile.placed do
+		if previous[slotKey] ~= key then
+			local item = Items.parse(key)
+			local rarity = item and Rarities.get(Items.rarityOf(item))
+			-- Wait for the server's new artifact model to replicate first.
+			task.delay(0.2, placeRing, tonumber(slotKey) :: number, if rarity then rarity.color else Colors.Accent)
+		end
+	end
+end
+
 local function pulse()
 	local profile = Store.profile
 	if not profile or reduced() then
 		return
+	end
+	pulseCount += 1
+	if pulseCount % GAIN_EVERY == 0 then
+		showGains(profile)
 	end
 	for slotKey, key in profile.placed do
 		local slot = tonumber(slotKey)
@@ -305,6 +431,7 @@ function FactoryView.start()
 		end
 	)
 	Store.watch({ "energy" }, pulse)
+	Store.watch({ "placed" }, onPlacedChanged)
 end
 
 return FactoryView

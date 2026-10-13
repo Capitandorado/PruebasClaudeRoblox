@@ -19,7 +19,7 @@ corren en **Lune** con un entorno simulado de Roblox (`tests/mock`):
 Se ejecutan los **scripts reales** del juego: el servidor arranca, los jugadores entran, la
 interfaz se construye y las pruebas pulsan sus botones.
 
-## Cobertura (113 pruebas)
+## Cobertura (124 pruebas)
 
 | Área | Ejemplos |
 | --- | --- |
@@ -31,6 +31,8 @@ interfaz se construye y las pruebas pulsan sus botones.
 | Seguridad y multijugador | Fuzzing de todas las acciones, peticiones en paralelo, cliente manipulado, 8 jugadores independientes, servidor lleno, visitas, clasificación global |
 | Pulido | Escala y menú en pantalla de móvil, consejos de inicio, ventanas que no se reconstruyen sin cambios, inventario que solo rehace las tarjetas que cambian, rescate al caer al vacío |
 | Volver a jugar | Ganancias sin conexión (mínimo, tope, Night Shift, cajas de la impresora, sin pagar dos veces), ventana de bienvenida, racha diaria (seguida, perdida, ciclo de 7 días), *Daily Crates*, aviso al entrar |
+| Tienda | Recibos de productos concedidos una sola vez y guardados antes de confirmar, jugador ausente o producto desconocido, potenciadores que se acumulan y caducan, pases comprados, reembolsados y comprobados al entrar (también con errores de Roblox), compras de prueba solo en Studio, códigos, hitos de colección y la ventana con precios y avisos de compra (el emulador simula MarketplaceService) |
+| Guía y animaciones | Barra de objetivo paso a paso con brillo en el botón y flecha sobre el pedestal, ventana que se abre al tocarla, avisos de ganancia en el contador, anillo al colocar, números de producción, cierre animado de ventanas |
 | Analíticas | Embudo de primera sesión en orden y una sola vez, jugadores que vuelven fuera del embudo, eventos de economía agrupados por minuto, rebirth y racha; el emulador valida los argumentos de AnalyticsService |
 
 Prueba de carga (`tools/soak.luau`, 30 minutos simulados, 4 jugadores con la interfaz real):

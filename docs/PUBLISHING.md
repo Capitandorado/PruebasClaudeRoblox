@@ -58,6 +58,43 @@ Sube los `.wav` de `assets/sounds/` y pega sus IDs en `src/shared/Config/Sounds.
 El juego no incluye imágenes de marketing. Haz capturas en Studio de tu fábrica (con neón y
 bloom se ve muy bien de noche) y súbelas en *Game Settings → Basic Info*.
 
+## 7. Tienda Robux (pases y productos)
+
+La tienda (botón dorado **STORE**) ya está programada; solo faltan los IDs, que Roblox crea
+para tu experiencia. Hasta que los pongas, en un servidor real esos artículos **no se
+muestran**, y en Studio aparecen con un botón *Test (Studio)* que los da gratis para probar.
+
+1. *Creator Dashboard → tu experiencia → Monetization → Passes → Create a Pass*: crea los
+   6 pases (nombre, imagen y precio) y activa *Item for Sale*.
+2. *Monetization → Developer Products → Create*: crea los 6 productos.
+3. Copia cada ID en el campo `id` correspondiente de `src/shared/Config/Monetization.luau`.
+4. En Studio, las compras con IDs reales son de prueba (no cobran Robux): compra cada
+   artículo y comprueba el efecto y el mensaje de confirmación.
+
+| Clave | Tipo | Qué hace | Precio sugerido |
+| --- | --- | --- | --- |
+| `vip` | Pase | +25 % Energy, +10 % suerte, cartel dorado | 299 |
+| `double_energy` | Pase | Energy x2 (también sin conexión) | 249 |
+| `lucky_charm` | Pase | Suerte x1,5 | 199 |
+| `turbo_fabricator` | Pase | Máquinas un 50 % más rápidas, +2 cajas | 149 |
+| `mega_storage` | Pase | +100 huecos de inventario | 99 |
+| `night_owl` | Pase | +25 % producción sin conexión, hasta 24 h | 99 |
+| `energy_small/medium/large` | Producto | 15 min / 1 h / 4 h de producción | 25 / 79 / 249 |
+| `boost_energy`, `boost_luck` | Producto | x2 Energy / x2 suerte durante 30 min de juego | 49 / 49 |
+| `refill` | Producto | Llena las cajas de todas las fabricadoras | 15 |
+
+Cómo funciona por dentro: los productos se conceden en `MarketplaceService.ProcessReceipt`,
+se guarda el ID de compra junto con la recompensa y solo entonces se confirma a Roblox, así que
+una compra nunca se pierde ni se da dos veces. La propiedad de los pases se comprueba al entrar.
+No se venden objetos aleatorios por Robux (las *Daily Crates* solo salen de recompensas
+gratuitas).
+
+## 8. Códigos
+
+Los códigos están en `src/shared/Config/Codes.luau` (cada jugador puede usar cada código una
+vez; `expires` es opcional). Vienen tres de lanzamiento: `VOIDFACTORY`, `LUCKY` y `CRATE`.
+Publica nuevos códigos en la página del juego o en tus redes para traer jugadores de vuelta.
+
 ## Lista de comprobación antes de lanzar
 
 - [ ] Max Players = 8.
@@ -65,3 +102,5 @@ bloom se ve muy bien de noche) y súbelas en *Game Settings → Basic Info*.
 - [ ] Probado en móvil (Studio: *Test → Device* emulando un teléfono).
 - [ ] Revisado el Output de un servidor en vivo (*Developer Console*, F9) sin errores.
 - [ ] Ajustado el balance si quieres otro ritmo (`docs/ECONOMY.md`).
+- [ ] IDs de pases y productos copiados en `Config/Monetization.luau` (o la tienda solo
+      mostrará los códigos).

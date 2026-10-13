@@ -12,6 +12,7 @@ local Signal = require(Shared.Util.Signal)
 local Theme = require(script.Parent.Theme)
 local C = require(script.Parent.Components)
 local Sound = require(script.Parent.Parent.Core.Sound)
+local Store = require(script.Parent.Parent.Core.Store)
 
 local App = {}
 
@@ -248,6 +249,42 @@ local function buildWindow(name: string): Frame
 	return frame
 end
 
+local function reducedMotion(): boolean
+	return Store.profile ~= nil and Store.profile.settings.reducedEffects == true
+end
+
+-- Cards and rows of a freshly opened window pop in one after another.
+local function animateEntrance(content: Instance)
+	if reducedMotion() then
+		return
+	end
+	local container = content:FindFirstChildWhichIsA("ScrollingFrame", true)
+	if not container then
+		return
+	end
+	local items = {}
+	for _, child in container:GetChildren() do
+		if child:IsA("GuiObject") and child.Visible and not child:FindFirstChildOfClass("UIScale") then
+			table.insert(items, child)
+		end
+	end
+	table.sort(items, function(a, b)
+		return a.LayoutOrder < b.LayoutOrder
+	end)
+	for index, item in items do
+		if index > 14 then
+			break
+		end
+		local scale = C.new("UIScale", { Name = "EnterScale", Scale = 0.88, Parent = item })
+		task.delay(index * 0.03, function()
+			local tween = C.tween(scale, 0.22, { Scale = 1 }, Enum.EasingStyle.Back)
+			tween.Completed:Connect(function()
+				scale:Destroy()
+			end)
+		end)
+	end
+end
+
 function App.openWindow(name: string, args: any?)
 	if not windowDefs[name] then
 		return
@@ -268,6 +305,7 @@ function App.openWindow(name: string, args: any?)
 	if handle.refresh then
 		handle.refresh()
 	end
+	animateEntrance(frame)
 	Sound.play("UIClick")
 	App.WindowChanged:Fire(name)
 end
@@ -281,7 +319,18 @@ function App.closeWindow(silent: boolean?)
 	local frame = windowFrames[name]
 	local handle = windowHandles[name]
 	if frame then
-		frame.Visible = false
+		if silent or reducedMotion() then
+			frame.Visible = false
+		else
+			-- Shrink away quickly; switching windows (silent) hides at once.
+			local popScale = frame:FindFirstChild("PopScale") :: UIScale
+			C.tween(popScale, 0.1, { Scale = 0.9 })
+			task.delay(0.1, function()
+				if openWindow ~= name then
+					frame.Visible = false
+				end
+			end)
+		end
 	end
 	if handle and handle.onClose then
 		handle.onClose()

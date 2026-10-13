@@ -60,6 +60,16 @@ Añade una entrada al final de `Config/Artifacts.luau`:
 `Config/Quests.luau`. Usa solo estadísticas que cuesten tiempo, objetos o Energy (las pruebas
 lo exigen para evitar misiones que se completen repitiendo una acción gratis).
 
+## Tienda, códigos y recompensas de colección
+
+- **Pases y productos**: `Config/Monetization.luau`. Un pase nuevo necesita su entrada en
+  `Passes` y sus efectos en `PassEffects` (campos que ya lee `Logic/State`: `production`,
+  `productionMult`, `luck`, `luckMult`, `speed`, `charges`, `storage`, `offlineRate`,
+  `offlineHours`). Los productos son de tipo `energy`, `boost` o `refill`.
+- **Códigos**: `Config/Codes.luau`. **Hitos de colección**: `Config/Milestones.luau`. Ambos
+  usan el mismo formato de recompensa (`seconds`/`min`, `crates`, `shards`, `boost`/`duration`;
+  ver `Logic/Actions/Rewards.luau`).
+
 ## Balance
 
 Tras cualquier cambio de números: `lune run tools/simulate.luau 240 active 5` y compara con

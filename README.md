@@ -25,7 +25,8 @@ Para publicar la experiencia: [docs/PUBLISHING.md](docs/PUBLISHING.md).
 [artefactos](docs/images/artifacts.png),
 [máquinas](docs/images/machines.png), interfaz en [PC](docs/images/ui_hud.png),
 [inventario](docs/images/ui_inventory.png), [probabilidades](docs/images/ui_odds.png),
-[recompensa diaria](docs/images/ui_daily.png), [bienvenida](docs/images/ui_welcome.png) y
+[recompensa diaria](docs/images/ui_daily.png), [bienvenida](docs/images/ui_welcome.png),
+[tienda](docs/images/ui_store.png), [recompensas de colección](docs/images/ui_rewards.png) y
 [móvil](docs/images/ui_phone.png) (maqueta aproximada: los emoji se ven como círculos).*
 
 ## Qué incluye
@@ -44,8 +45,10 @@ Para publicar la experiencia: [docs/PUBLISHING.md](docs/PUBLISHING.md).
 | Multijugador | Hasta 8 jugadores, visitas a otras fábricas, clasificaciones del servidor y globales, anuncios de hallazgos extraordinarios |
 | Guardado | DataStore con bloqueo de sesión, reintentos, validación antes de guardar y guardado al cerrar el servidor |
 | Seguridad | Todo se calcula en el servidor; una única RemoteFunction con validación de argumentos y límite de frecuencia por acción |
+| Tienda | Botón **STORE**: 6 pases de juego y 6 productos de Robux (packs de Energy, potenciadores x2, recarga), códigos promocionales y recompensas por completar la colección |
 | Analíticas | Embudo de primera sesión, fuentes y gastos de Energy/Shards, rebirths y racha diaria en el panel de Analytics de Roblox |
-| Interfaz | Adaptada a PC y móvil, animaciones, consejos de inicio, ajustes de sonido y de efectos visuales |
+| Interfaz | Adaptada a PC y móvil; barra de objetivo que siempre dice qué hacer después (con progreso) y lleva a la ventana adecuada; botones que brillan y flecha sobre el pedestal en los primeros pasos; ajustes de sonido y de efectos |
+| Animaciones | Ventanas que entran y salen, contenido escalonado, «+⚡» que sube desde los pedestales, contador que rebota con ganancias y gastos, anillos al colocar, ondas al comprar o ampliar, confeti, celebración de rebirth y escalera de rarezas al abrir cajas |
 
 ## Cómo se juega
 
@@ -57,6 +60,10 @@ Para publicar la experiencia: [docs/PUBLISHING.md](docs/PUBLISHING.md).
 - 📖 **Collection → Odds** muestra las probabilidades exactas con tu suerte actual.
 - 📜 **Quests → Daily**: recoge la recompensa diaria; el punto rojo del menú avisa cuando está
   lista.
+- La **barra de objetivo** (sobre OPEN BOX) te dice siempre el siguiente paso; tócala para ir a
+  la ventana donde se hace.
+- 🛒 **STORE**: pases, potenciadores y **códigos** (prueba `VOIDFACTORY`). 📖 **Collection →
+  Rewards**: premios por descubrir artefactos y variantes.
 
 ## Estructura
 
@@ -67,7 +74,7 @@ Para publicar la experiencia: [docs/PUBLISHING.md](docs/PUBLISHING.md).
 | `src/shared/Visuals` | Modelos procedurales de artefactos y máquinas |
 | `src/server/Services` | Red, datos, mundo, parcelas, sesiones, simulación, clasificaciones, administración |
 | `src/client` | Interfaz, animaciones y controladores |
-| `tests/` | 113 pruebas en Lune con un entorno simulado de Roblox validado contra la API oficial |
+| `tests/` | 124 pruebas en Lune con un entorno simulado de Roblox validado contra la API oficial |
 | `tools/` | Verificación completa, simulador de economía, generador de sonidos, vistas previas de los modelos |
 | `assets/sounds` | 15 efectos de sonido originales listos para subir |
 

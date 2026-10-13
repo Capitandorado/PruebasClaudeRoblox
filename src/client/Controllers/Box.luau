@@ -320,6 +320,43 @@ local function celebrateTier(rarity: Rarities.Rarity)
 	end)
 end
 
+-- While the box shakes, a label climbs the rarity ladder from Common up to the tier that
+-- was actually rolled (it never shows a tier above the real result).
+local function rarityClimb(target: Rarities.Rarity, duration: number)
+	local overlay = App.layers.Overlay
+	if not overlay or target.order <= 1 then
+		return
+	end
+	local label = C.new("TextLabel", {
+		Name = "RarityClimb",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.3),
+		Size = UDim2.fromOffset(520, 60),
+		BackgroundTransparency = 1,
+		Text = "",
+		FontFace = Theme.Fonts.Display,
+		TextSize = 34,
+		TextStrokeTransparency = 0.25,
+		ZIndex = 45,
+		Parent = overlay,
+	})
+	local scale = C.new("UIScale", { Parent = label })
+	task.spawn(function()
+		local steps = target.order
+		for order = 1, steps do
+			local rarity = Rarities.List[order]
+			label.Text = string.upper(rarity.id) .. (if order < steps then "..." else "!")
+			label.TextColor3 = rarity.color
+			scale.Scale = if order == steps then 1.35 else 1.12
+			C.tween(scale, 0.12, { Scale = 1 })
+			-- Later tiers linger a little longer: the tension builds toward the result.
+			task.wait(duration / steps * (0.6 + 0.8 * order / steps))
+		end
+		task.wait(0.35)
+		label:Destroy()
+	end)
+end
+
 -- Full reveal sequence. Yields until the animation is over.
 function Box.playReveal(result: any)
 	local grant = result.grants[1]
@@ -344,6 +381,9 @@ function Box.playReveal(result: any)
 	boxModel.Parent = effectsFolder()
 	local glow = (boxModel:FindFirstChild("Body") :: BasePart):FindFirstChild("Glow") :: PointLight
 	local buildUp = duration * 0.6
+	if not reduced then
+		rarityClimb(rarity, buildUp)
+	end
 	local elapsed = 0
 	local tease = rarity.order >= Rarities.order("Rare")
 	local connection
