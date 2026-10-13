@@ -15,6 +15,7 @@ local Services = script.Parent
 local Net = require(Services.Net)
 local Plots = require(Services.Plots)
 local Data = require(Services.Data)
+local Analytics = require(Services.Analytics)
 
 export type Session = {
 	player: Player,
@@ -71,6 +72,10 @@ end
 
 function Sessions.production(session: Session)
 	return Simulation.getProduction(session.profile, session.runtime, Sessions.now())
+end
+
+function Sessions.balances(session: Session): { [string]: number }
+	return { Energy = session.profile.energy, Shards = session.profile.shards }
 end
 
 function Sessions.markDirty(session: Session)
@@ -175,9 +180,12 @@ local function onPlayerAdded(player: Player)
 		finalSaved = false,
 	}
 	sessions[player] = session
+	local firstSession = profile.playTime == 0 and profile.rebirths == 0 and profile.stats.boxesOpened == 0
+	Analytics.joined(player, firstSession)
 	local offline = Offline.apply(profile, now, session.rng)
 	if offline then
 		session.welcome = Sessions.welcomePayload(offline)
+		Analytics.earn(player, offline.energy, "TimedReward", "Offline")
 	end
 	Progression.ensureQuests(profile, session.rng)
 	local plot = Plots.assign(session)
@@ -198,6 +206,7 @@ local function onPlayerRemoving(player: Player)
 		return
 	end
 	session.ready = false
+	Analytics.left(player, Sessions.balances(session))
 	Sessions.Ending:Fire(session)
 	Plots.release(session)
 	Data.save(session, true)

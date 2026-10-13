@@ -936,4 +936,80 @@ M.ServiceProvider = {
 
 M.ProximityPromptService = {}
 
+-- AnalyticsService: server-only, argument types as documented; every event is recorded in
+-- the runtime output under "analytics" so tests can assert on it.
+local function analyticsArgs(method, player, checks)
+	local context = currentContext()
+	if context and context.kind ~= "server" then
+		error("AnalyticsService:" .. method .. " can only be called from the server", 3)
+	end
+	if not (Instance.isInstance(player) and isA(player, "Player")) then
+		error("AnalyticsService:" .. method .. ": Argument 1 must be a Player", 3)
+	end
+	for index, check in checks do
+		local value, expected, optional = check[1], check[2], check[3]
+		if not (value == nil and optional) and type(value) ~= expected then
+			error(string.format("AnalyticsService:%s: Argument %d must be a %s", method, index + 1, expected), 3)
+		end
+	end
+end
+M.AnalyticsService = {
+	LogOnboardingFunnelStepEvent = function(_, player, step, stepName, customFields)
+		analyticsArgs("LogOnboardingFunnelStepEvent", player, {
+			{ step, "number" },
+			{ stepName, "string", true },
+			{ customFields, "table", true },
+		})
+		if step < 1 or step ~= math.floor(step) then
+			error("AnalyticsService:LogOnboardingFunnelStepEvent: step must be a positive integer", 2)
+		end
+		runtime():log("analytics", "Onboarding", step, stepName)
+	end,
+	LogEconomyEvent = function(
+		_,
+		player,
+		flowType,
+		currencyType,
+		amount,
+		endingBalance,
+		transactionType,
+		itemSku,
+		customFields
+	)
+		analyticsArgs("LogEconomyEvent", player, {
+			{ flowType, "userdata" },
+			{ currencyType, "string" },
+			{ amount, "number" },
+			{ endingBalance, "number" },
+			{ transactionType, "string" },
+			{ itemSku, "string", true },
+			{ customFields, "table", true },
+		})
+		if flowType.EnumType ~= rbx().Enum.AnalyticsEconomyFlowType then
+			error("AnalyticsService:LogEconomyEvent: Argument 2 must be an AnalyticsEconomyFlowType", 2)
+		end
+		if amount <= 0 or amount ~= amount then
+			error("AnalyticsService:LogEconomyEvent: amount must be positive", 2)
+		end
+		runtime():log("analytics", "Economy", flowType.Name, currencyType, amount, transactionType, itemSku or "")
+	end,
+	LogProgressionCompleteEvent = function(_, player, path, level, levelName, customFields)
+		analyticsArgs("LogProgressionCompleteEvent", player, {
+			{ path, "string" },
+			{ level, "number" },
+			{ levelName, "string", true },
+			{ customFields, "table", true },
+		})
+		runtime():log("analytics", "Progression", path, level)
+	end,
+	LogCustomEvent = function(_, player, eventName, value, customFields)
+		analyticsArgs("LogCustomEvent", player, {
+			{ eventName, "string" },
+			{ value, "number", true },
+			{ customFields, "table", true },
+		})
+		runtime():log("analytics", "Custom", eventName, value or "")
+	end,
+}
+
 return Services

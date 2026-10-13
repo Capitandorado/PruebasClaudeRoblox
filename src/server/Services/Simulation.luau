@@ -15,6 +15,7 @@ local Net = require(Services.Net)
 local Sessions = require(Services.Sessions)
 local Plots = require(Services.Plots)
 local Game = require(Services.Game)
+local Analytics = require(Services.Analytics)
 
 local SimulationService = {}
 
@@ -34,6 +35,7 @@ local PRINT_SECTIONS = {
 
 local function tickSession(session: Sessions.Session, dt: number, now: number)
 	local events = Simulation.tick(session.profile, session.runtime, dt, now, session.rng)
+	Analytics.earn(session.player, events.energy, "Gameplay", "Production")
 	local production = Sessions.production(session)
 	if #events.printed > 0 then
 		Sessions.replicate(session, PRINT_SECTIONS)
@@ -73,9 +75,18 @@ local function tickSession(session: Sessions.Session, dt: number, now: number)
 	end
 end
 
+local analyticsClock = 0
+
 -- Advances every session by `dt` seconds (also used by the admin time-warp).
 function SimulationService.step(dt: number)
 	local now = Sessions.now()
+	analyticsClock += dt
+	if analyticsClock >= Analytics.FlushInterval then
+		analyticsClock = 0
+		for _, session in Sessions.all() do
+			Analytics.flush(session.player, Sessions.balances(session))
+		end
+	end
 	-- Timed events change luck/production for everyone: recompute cached production.
 	if Events.refresh(now) then
 		for _, session in Sessions.all() do

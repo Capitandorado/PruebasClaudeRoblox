@@ -19,6 +19,7 @@ local Net = require(Services.Net)
 local Sessions = require(Services.Sessions)
 local Plots = require(Services.Plots)
 local Leaderboards = require(Services.Leaderboards)
+local Analytics = require(Services.Analytics)
 
 local Game = {}
 
@@ -89,6 +90,9 @@ function Game.announceGrants(session: Session, result: any)
 		end
 		bestOrder = math.max(bestOrder, rarity.order)
 		local now = os.clock()
+		if rarity.order >= Rarities.order("Mythic") then
+			Analytics.custom(session.player, "MythicOrBetterFound", rarity.order)
+		end
 		if Game.shouldAnnounce(rarity, grant.newArtifact == true, now) then
 			lastAnnounce = now
 			Net.notifyAll("Announce", {
@@ -127,6 +131,10 @@ function Game.start()
 		end
 		Sessions.replicate(session, BOX_SECTIONS)
 		Game.announceGrants(session, result)
+		Analytics.spend(session.player, result.paid, "Gameplay", "Box:" .. machineId)
+		if session.profile.stats.boxesOpened == 1 then
+			Analytics.step(session.player, "OpenedFirstBox")
+		end
 		return true, result
 	end)
 
@@ -135,6 +143,7 @@ function Game.start()
 		if not ok then
 			return false, result
 		end
+		Analytics.step(session.player, "PlacedFirstArtifact")
 		Sessions.markDirty(session)
 		Plots.refreshSlots(session)
 		Sessions.replicate(session, sections("inventory", "placed", "stats"))
@@ -157,6 +166,7 @@ function Game.start()
 		if not ok then
 			return false, result
 		end
+		Analytics.step(session.player, "PlacedFirstArtifact")
 		Sessions.markDirty(session)
 		Plots.refreshSlots(session)
 		Sessions.replicate(session, sections("inventory", "placed", "stats"))
@@ -179,6 +189,7 @@ function Game.start()
 		if not ok then
 			return false, result
 		end
+		Analytics.earn(session.player, result.value, "Gameplay", "Sell")
 		Sessions.replicate(session, sections(WALLET, "inventory"))
 		return true, result
 	end)
@@ -188,6 +199,7 @@ function Game.start()
 		if not ok then
 			return false, result
 		end
+		Analytics.earn(session.player, result.value, "Gameplay", "Sell")
 		Sessions.replicate(session, sections(WALLET, "inventory"))
 		return true, result
 	end)
@@ -206,6 +218,10 @@ function Game.start()
 		if not ok then
 			return false, result
 		end
+		Analytics.spend(session.player, result.cost, "Shop", "Machine:" .. machineId)
+		if machineId == "box_printer" then
+			Analytics.step(session.player, "BoughtBoxPrinter")
+		end
 		Sessions.markDirty(session)
 		Plots.refreshMachines(session)
 		Sessions.replicate(session, sections(WALLET, "machines"))
@@ -218,6 +234,7 @@ function Game.start()
 		if not ok then
 			return false, result
 		end
+		Analytics.spend(session.player, result.cost, "Shop", "MachineUpgrade:" .. machineId)
 		Sessions.markDirty(session)
 		Plots.refreshMachines(session)
 		Sessions.replicate(session, sections(WALLET, "machines"))
@@ -229,6 +246,7 @@ function Game.start()
 		if not ok then
 			return false, result
 		end
+		Analytics.spend(session.player, result.cost, "Shop", "Upgrade:" .. upgradeId)
 		Sessions.markDirty(session)
 		Sessions.replicate(session, sections(WALLET, "upgrades"))
 		return true, result
@@ -239,6 +257,8 @@ function Game.start()
 		if not ok then
 			return false, result
 		end
+		Analytics.spend(session.player, result.cost, "Shop", "Expansion")
+		Analytics.step(session.player, "FirstExpansion")
 		Plots.refreshExpansion(session)
 		Sessions.replicate(session, sections(WALLET, "expansion"))
 		Net.effect("Unlock", { plot = session.plot, level = result.level, userId = session.userId })
@@ -250,6 +270,7 @@ function Game.start()
 		if not ok then
 			return false, result
 		end
+		Analytics.spend(session.player, result.cost, "Gameplay", "Fusion")
 		Sessions.markDirty(session)
 		Sessions.replicate(session, sections(WALLET, "inventory", "collection"))
 		return true, result
@@ -260,6 +281,9 @@ function Game.start()
 		if not ok then
 			return false, result
 		end
+		Analytics.economy(session.player, "Source", "Shards", result.shards, "Gameplay", "Rebirth")
+		Analytics.progression(session.player, "Rebirth", result.rebirths)
+		Analytics.step(session.player, "FirstRebirth")
 		Progression.ensureQuests(session.profile, session.rng)
 		Sessions.markDirty(session)
 		session.runtime.printerAt = nil
@@ -280,6 +304,7 @@ function Game.start()
 		if not ok then
 			return false, result
 		end
+		Analytics.economy(session.player, "Sink", "Shards", result.cost, "Shop", "Perk:" .. perkId)
 		Sessions.markDirty(session)
 		Sessions.replicate(session, sections("shards", "perks"))
 		return true, result
@@ -291,6 +316,7 @@ function Game.start()
 		if not ok then
 			return false, result
 		end
+		Analytics.earn(session.player, result.reward, "Gameplay", "Quest")
 		Sessions.replicate(session, sections(WALLET, "quests"))
 		return true, result
 	end)
@@ -309,6 +335,8 @@ function Game.start()
 		for _, boxResult in result.results do
 			Game.announceGrants(session, boxResult)
 		end
+		Analytics.earn(session.player, result.energy, "TimedReward", "Daily")
+		Analytics.custom(session.player, "DailyStreak", result.streak)
 		return true, result
 	end)
 
