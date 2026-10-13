@@ -8,6 +8,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Profile = require(Shared.Logic.Profile)
 local Simulation = require(Shared.Logic.Simulation)
 local Progression = require(Shared.Logic.Actions.Progression)
+local Offline = require(Shared.Logic.Offline)
 local Signal = require(Shared.Util.Signal)
 
 local Services = script.Parent
@@ -27,6 +28,7 @@ export type Session = {
 	loadedClock: number,
 	lastSave: number,
 	finalSaved: boolean,
+	welcome: any?, -- offline progress to show once the client is ready
 }
 
 local Sessions = {}
@@ -95,6 +97,7 @@ local ALL_SECTIONS = {
 	"bestEps",
 	"runBestEps",
 	"playTime",
+	"daily",
 }
 Sessions.AllSections = ALL_SECTIONS
 
@@ -126,7 +129,24 @@ function Sessions.replicateFull(session: Session)
 		runtime = runtimeInfo(session),
 		plot = session.plot,
 		userId = session.userId,
+		welcome = session.welcome,
 	})
+	session.welcome = nil
+end
+
+-- Offline progress as sent to the client (grants reduced to what the popup shows).
+function Sessions.welcomePayload(result: Offline.Result)
+	local items = {}
+	for _, grant in result.grants do
+		table.insert(items, { key = grant.key, newArtifact = grant.newArtifact, sold = grant.sold })
+	end
+	return {
+		away = result.away,
+		seconds = result.seconds,
+		rate = result.rate,
+		energy = result.energy,
+		items = items,
+	}
 end
 
 local function onPlayerAdded(player: Player)
@@ -155,6 +175,10 @@ local function onPlayerAdded(player: Player)
 		finalSaved = false,
 	}
 	sessions[player] = session
+	local offline = Offline.apply(profile, now, session.rng)
+	if offline then
+		session.welcome = Sessions.welcomePayload(offline)
+	end
 	Progression.ensureQuests(profile, session.rng)
 	local plot = Plots.assign(session)
 	if not plot then

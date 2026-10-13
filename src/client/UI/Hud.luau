@@ -12,6 +12,7 @@ local Format = require(Shared.Util.Format)
 local State = require(Shared.Logic.State)
 local Events = require(Shared.Logic.Events)
 local Progression = require(Shared.Logic.Actions.Progression)
+local Daily = require(Shared.Logic.Actions.Daily)
 
 local Client = script.Parent.Parent
 local Store = require(Client.Core.Store)
@@ -31,6 +32,7 @@ Hud.selectedMachine = Machines.StarterId
 local refs: { [string]: any } = {}
 local displayedEnergy = 0
 local badges: { [string]: Frame } = {}
+local questReady = false
 
 local MENU = {
 	{ id = "Inventory", icon = "🎒", label = "Items" },
@@ -555,6 +557,7 @@ local function refreshQuest()
 	if not best then
 		refs.questText.Text = "No quests"
 		refs.setQuest(0)
+		questReady = false
 		return
 	end
 	local def = Quests.ById[best.id]
@@ -568,7 +571,7 @@ local function refreshQuest()
 		refs.questText.Text = text .. string.format("  (%s/%s)", Format.number(progress), Format.number(best.target))
 		refs.setQuest(bestRatio, Colors.Accent)
 	end
-	badges.Quests.Visible = bestRatio >= 1
+	questReady = bestRatio >= 1
 end
 
 local function refreshBadges()
@@ -576,6 +579,7 @@ local function refreshBadges()
 	if not profile then
 		return
 	end
+	badges.Quests.Visible = questReady or Daily.status(profile, Store.now()).available
 	badges.Rebirth.Visible = profile.energy >= Rebirth.cost(profile.rebirths)
 	badges.Inventory.Visible = State.freeSpace(profile) <= 0
 end
@@ -666,6 +670,11 @@ function Hud.start()
 			if element then
 				(element :: any).Visible = not hidden and (element.Name ~= "Tip" or refs.tipText.Text ~= "")
 			end
+		end
+		-- On phones a window reaches the top of the screen and would cover the quest tracker.
+		local tracker = root:FindFirstChild("QuestTracker")
+		if tracker then
+			(tracker :: any).Visible = not (hidden and App.isNarrow())
 		end
 		local bar = root:FindFirstChild("TopBar")
 		if bar then

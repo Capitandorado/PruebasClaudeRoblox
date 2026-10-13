@@ -13,6 +13,7 @@ local Profile = require(Shared.Logic.Profile)
 local Items = require(Shared.Logic.Items)
 local Inventory = require(Shared.Logic.Inventory)
 local Simulation = require(Shared.Logic.Simulation)
+local Offline = require(Shared.Logic.Offline)
 local State = require(Shared.Logic.State)
 
 local Services = script.Parent
@@ -65,6 +66,7 @@ commands.give = function(session, key)
 	Inventory.discover(session.profile, item, Sessions.now())
 	Inventory.add(session.profile, key, 1)
 	Plots.refreshShowcase(session)
+	Sessions.markDirty(session)
 	Sessions.replicate(session)
 	return true, { key = key }
 end
@@ -82,6 +84,7 @@ commands.giveAll = function(session)
 		Inventory.add(session.profile, Items.keyOf(item), 1)
 	end
 	Plots.refreshShowcase(session)
+	Sessions.markDirty(session)
 	Sessions.replicate(session)
 	return true, {}
 end
@@ -111,6 +114,32 @@ commands.charges = function(session)
 		end
 	end
 	Sessions.replicate(session)
+	return true, {}
+end
+
+-- Pretends the player left `seconds` ago and applies offline progress (welcome popup).
+commands.away = function(session, seconds)
+	if not isPositive(seconds, 7 * 86400) or seconds < Economy.OfflineMinSeconds then
+		return false, "BadRequest"
+	end
+	local now = Sessions.now()
+	session.profile.lastOnline = now - seconds
+	local result = Offline.apply(session.profile, now, session.rng)
+	if not result then
+		return false, "BadRequest"
+	end
+	Sessions.replicate(session)
+	Net.notify(session.player, "Welcome", Sessions.welcomePayload(result))
+	return true, { gained = result.energy }
+end
+
+-- Moves the last daily claim one day back, so the next reward (and streak) is available.
+commands.nextDay = function(session)
+	local daily = session.profile.daily
+	if daily.day > 0 then
+		daily.day -= 1
+	end
+	Sessions.replicate(session, { "daily" })
 	return true, {}
 end
 

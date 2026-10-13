@@ -126,6 +126,7 @@ function Simulation.tick(profile: Profile, runtime: Runtime, dt: number, now: nu
 		profile.runBestEps = production.total
 	end
 	profile.playTime += dt
+	profile.lastOnline = now
 
 	-- Box Printer.
 	local interval = State.printerInterval(profile, production)

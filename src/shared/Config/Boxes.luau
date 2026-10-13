@@ -62,6 +62,21 @@ local list: { Box } = {
 		mutationMult = 2,
 		color = Color3.fromRGB(170, 80, 255),
 	},
+	{
+		-- Only from daily rewards (no machine sells it); rolled with the Starter Fabricator's luck.
+		id = "daily",
+		name = "Daily Crate",
+		rarityWeights = {
+			Rare = 600,
+			Epic = 300,
+			Legendary = 80,
+			Mythic = 18,
+			Divine = 2,
+			Celestial = 0.3,
+		},
+		mutationMult = 1.5,
+		color = Color3.fromRGB(255, 190, 80),
+	},
 }
 
 local byId: { [string]: Box } = {}

@@ -29,6 +29,7 @@ local Messages = {
 	InvalidPerk = "Unknown perk.",
 	InvalidQuest = "Unknown quest.",
 	QuestIncomplete = "Quest not finished yet.",
+	AlreadyClaimed = "You already claimed today's reward. Come back tomorrow!",
 	RateLimited = "Slow down!",
 	BadRequest = "Invalid request.",
 	NotReady = "Your factory is still loading.",

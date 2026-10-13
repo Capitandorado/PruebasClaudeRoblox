@@ -20,6 +20,8 @@ Store.profile = nil :: any
 Store.runtime = { surgeEndsAt = 0, surgeNextAt = 0, printerAt = 0 }
 Store.plot = 0
 Store.ready = false
+-- Offline progress sent with the first full sync, until Controllers/Rewards shows it.
+Store.pendingWelcome = nil :: any
 Store.energyStamp = 0
 
 local productionCache = nil
@@ -30,6 +32,7 @@ local PRODUCTION_KEYS = {
 	perks = true,
 	rebirths = true,
 	expansion = true,
+	collection = true, -- collection bonus
 	runtime = true,
 }
 
@@ -70,6 +73,9 @@ local function apply(kind: string, payload: any)
 		Store.profile = payload.profile
 		Store.runtime = payload.runtime or Store.runtime
 		Store.plot = payload.plot
+		if payload.welcome then
+			Store.pendingWelcome = payload.welcome
+		end
 		changed.all = true
 	elseif kind == "Patch" and Store.profile then
 		for key, value in payload do

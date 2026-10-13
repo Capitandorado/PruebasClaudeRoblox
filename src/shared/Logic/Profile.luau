@@ -13,12 +13,14 @@ local Artifacts = require(Shared.Config.Artifacts)
 local Mutations = require(Shared.Config.Mutations)
 local Economy = require(Shared.Config.Economy)
 local Rarities = require(Shared.Config.Rarities)
+local DailyConfig = require(Shared.Config.Daily)
 local Items = require(script.Parent.Items)
 local MachineStats = require(script.Parent.MachineStats)
 
 export type MachineState = { level: number, charges: number, chargeAt: number }
 export type CollectionEntry = { count: number, muts: { [string]: boolean }, stars: number, first: number }
 export type QuestState = { id: string, base: number, target: number }
+export type DailyState = { day: number, streak: number, claims: number }
 
 export type Profile = {
 	version: number,
@@ -42,6 +44,8 @@ export type Profile = {
 	runBestEps: number,
 	created: number,
 	playTime: number,
+	lastOnline: number,
+	daily: DailyState,
 	orphaned: { [string]: number },
 }
 
@@ -101,6 +105,8 @@ function Profile.new(now: number): Profile
 		runBestEps = 0,
 		created = now,
 		playTime = 0,
+		lastOnline = 0,
+		daily = { day = 0, streak = 0, claims = 0 },
 		orphaned = {},
 	}
 end
@@ -162,6 +168,13 @@ function Profile.reconcile(raw: any, now: number): Profile
 	profile.runBestEps = number(data.runBestEps, 0, 0)
 	profile.created = number(data.created, now)
 	profile.playTime = number(data.playTime, 0, 0)
+	-- A future timestamp (clock skew between servers) counts as "just now".
+	profile.lastOnline = number(data.lastOnline, 0, 0, now)
+	if type(data.daily) == "table" then
+		profile.daily.day = integer(data.daily.day, 0, 0, math.floor(now / DailyConfig.DaySeconds))
+		profile.daily.streak = integer(data.daily.streak, 0, 0)
+		profile.daily.claims = integer(data.daily.claims, 0, 0)
+	end
 
 	if type(data.orphaned) == "table" then
 		for key, count in data.orphaned do

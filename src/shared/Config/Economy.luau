@@ -24,7 +24,14 @@ Economy.MinChargeInterval = 2
 Economy.MinPrinterInterval = 3
 -- Server simulation tick (seconds). Production is integrated per tick.
 Economy.TickInterval = 1
--- Box printer can bank at most this many pending boxes while the player is away from the server.
+-- Offline progress: while away, the factory keeps producing at a reduced rate (Night Shift
+-- perks raise it), for at most OfflineMaxHours. Shorter absences than OfflineMinSeconds
+-- (server hops, quick rejoins) give nothing.
+Economy.OfflineRate = 0.25
+Economy.OfflineMaxRate = 0.75
+Economy.OfflineMaxHours = 8
+Economy.OfflineMinSeconds = 300
+-- Box printer can bank at most this many pending boxes while the player is away.
 Economy.PrinterBacklog = 3
 -- Permanent production bonus for the collection (kept through rebirths).
 Economy.CollectionBonusPerArtifact = 0.01

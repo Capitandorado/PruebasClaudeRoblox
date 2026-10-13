@@ -72,6 +72,7 @@ Net.Actions = {
 	Rebirth = { args = {}, rate = 0.5, burst = 1 },
 	BuyPerk = { args = { ID }, rate = 4, burst = 6 },
 	ClaimQuest = { args = { V.integer(1, 10) }, rate = 4, burst = 6 },
+	ClaimDaily = { args = {}, rate = 1, burst = 2 },
 	SetSetting = { args = { ID, V.boolean }, rate = 4, burst = 8 },
 	Visit = { args = { V.integer(1, 2 ^ 31 - 1) }, rate = 1, burst = 3 },
 	GoHome = { args = {}, rate = 1, burst = 3 },

@@ -91,7 +91,8 @@ function State.collectionBonus(profile: Profile): number
 	return bonus
 end
 
-function State.computeProduction(profile: Profile, surgeMult: number?): Production.Result
+-- `eventMult` overrides the timed event multiplier (offline progress ignores events).
+function State.computeProduction(profile: Profile, surgeMult: number?, eventMult: number?): Production.Result
 	local overclock = State.machineLevel(profile, "overclocker")
 	return Production.compute({
 		placed = State.placedItems(profile),
@@ -100,7 +101,7 @@ function State.computeProduction(profile: Profile, surgeMult: number?): Producti
 		perkBonus = State.perkBonus(profile, "efficiency"),
 		surgeMult = surgeMult or 1,
 		collectionBonus = State.collectionBonus(profile),
-		eventMult = Events.current.productionMult,
+		eventMult = eventMult or Events.current.productionMult,
 	})
 end
 

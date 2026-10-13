@@ -16,6 +16,8 @@ local COMMANDS = {
 	{ "Warp 10 min", "warp", 600 },
 	{ "Warp 1 hour", "warp", 3600 },
 	{ "Fill boxes", "charges", true },
+	{ "Away 2 hours", "away", 7200 },
+	{ "Next daily day", "nextDay", true },
 	{ "Give 1 of each", "giveAll", true },
 	{ "Give Anomaly", "give", "the_anomaly||1" },
 	{ "Give Rainbow Nucleus", "give", "void_nucleus|Rainbow|1" },
@@ -60,7 +62,7 @@ return {
 					local response = Remote.request("Admin", command[2], command[3])
 					if response.ok then
 						output.Text = "OK: " .. command[1]
-						if command[2] == "warp" then
+						if command[2] == "warp" or command[2] == "away" then
 							output.Text ..= string.format(" (+%.0f Energy)", response.data.gained)
 						end
 					else

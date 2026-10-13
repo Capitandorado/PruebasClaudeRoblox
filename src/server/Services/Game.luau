@@ -12,6 +12,7 @@ local Factory = require(Shared.Logic.Actions.Factory)
 local Shop = require(Shared.Logic.Actions.Shop)
 local Fusion = require(Shared.Logic.Actions.Fusion)
 local Progression = require(Shared.Logic.Actions.Progression)
+local Daily = require(Shared.Logic.Actions.Daily)
 
 local Services = script.Parent
 local Net = require(Services.Net)
@@ -74,6 +75,10 @@ end
 function Game.announceGrants(session: Session, result: any)
 	local bestOrder = 0
 	for _, grant in result.grants do
+		if grant.newArtifact or grant.newVariant then
+			-- New discoveries raise the collection bonus: recompute production.
+			Sessions.markDirty(session)
+		end
 		local item = Items.parse(grant.key)
 		if not item then
 			continue
@@ -245,6 +250,7 @@ function Game.start()
 		if not ok then
 			return false, result
 		end
+		Sessions.markDirty(session)
 		Sessions.replicate(session, sections(WALLET, "inventory", "collection"))
 		return true, result
 	end)
@@ -286,6 +292,23 @@ function Game.start()
 			return false, result
 		end
 		Sessions.replicate(session, sections(WALLET, "quests"))
+		return true, result
+	end)
+
+	handle("ClaimDaily", function(session)
+		local now = Sessions.now()
+		local ok, result = Daily.claim(session.profile, now, {
+			now = now,
+			rng = session.rng,
+			production = Sessions.production(session),
+		})
+		if not ok then
+			return false, result
+		end
+		Sessions.replicate(session, sections(BOX_SECTIONS, "daily"))
+		for _, boxResult in result.results do
+			Game.announceGrants(session, boxResult)
+		end
 		return true, result
 	end)
 

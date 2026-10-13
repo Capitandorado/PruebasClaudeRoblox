@@ -79,6 +79,15 @@ Rebirth.Perks = {
 		perLevel = 25,
 		description = "+25 inventory slots per level (permanent).",
 	},
+	{
+		id = "nightshift",
+		name = "Night Shift",
+		maxLevel = 5,
+		costBase = 1,
+		costPerLevel = 1,
+		perLevel = 0.1,
+		description = "+10% offline production per level.",
+	},
 } :: { Perk }
 
 local byId: { [string]: Perk } = {}

@@ -412,6 +412,25 @@ function Box.open(machineId: string, quietErrors: boolean?): boolean
 	return true
 end
 
+-- Plays the reveals of boxes opened elsewhere (daily crates), after any reveal in progress.
+function Box.playResults(results: { any })
+	task.spawn(function()
+		while Box.busy do
+			task.wait(0.1)
+		end
+		Box.busy = true
+		Box.Busy:Fire(true)
+		for _, result in results do
+			local ok, err = pcall(Box.playReveal, result)
+			if not ok then
+				warn("[Box] reveal failed: " .. tostring(err))
+			end
+		end
+		Box.busy = false
+		Box.Busy:Fire(false)
+	end)
+end
+
 -- Auto-open loop: keeps opening at the chosen machine; waits for free charges and stops
 -- when a paid machine runs out of Energy or the inventory fills up.
 function Box.setAuto(enabled: boolean, machineId: string?)

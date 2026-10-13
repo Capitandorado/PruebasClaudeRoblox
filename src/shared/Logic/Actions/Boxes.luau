@@ -87,6 +87,17 @@ function Boxes.open(profile: Profile, machineId: string, context: Context): (boo
 	return true, result
 end
 
+-- Reward crates (daily rewards): no machine involved, rolled with the Starter Fabricator's
+-- luck so the odds match the Odds tab. The caller checks storage first.
+function Boxes.openCrate(profile: Profile, boxId: string, context: Context): (boolean, any)
+	local result = openWith(profile, Machines.StarterId, boxId, context)
+	if not result then
+		return false, "InvalidMachine"
+	end
+	result.paid = 0
+	return true, result
+end
+
 -- Box Printer: automatic open, called by the simulation tick.
 function Boxes.printerOpen(profile: Profile, context: Context): (boolean, any)
 	local machine = Machines.get("box_printer")

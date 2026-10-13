@@ -166,6 +166,18 @@ do
 		openWindow(entry[1], entry[2])
 	)
 end
+scene("window_Quests_Daily", { 1280, 720 }, openWindow("Quests", "Daily"))
+scene("window_Quests_Daily_phone", { 812, 375 }, openWindow("Quests", "Daily"))
+local function welcomeBack(rt, player)
+	progress(rt, player)
+	Fixture.request(rt, player, "Admin", "giveAll", true)
+	Fixture.request(rt, player, "Admin", "energy", 3000)
+	Fixture.request(rt, player, "BuyMachine", "box_printer")
+	Fixture.request(rt, player, "Admin", "away", 30000)
+	rt:run(0.5, 0.1)
+end
+scene("welcome_back_desktop", { 1280, 720 }, welcomeBack)
+scene("welcome_back_phone", { 812, 375 }, welcomeBack)
 scene("window_Inventory_phone", { 812, 375 }, openWindow("Inventory"))
 scene("window_Shop_phone", { 812, 375 }, openWindow("Shop"))
 
