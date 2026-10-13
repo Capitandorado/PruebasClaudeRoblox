@@ -311,25 +311,49 @@ return {
 			C.setButton(fuseButton, fuseText, canFuse)
 		end
 
-		local function refreshGrid()
+		-- Cards are kept per item key and only rebuilt when their count or selection changes,
+		-- so auto-opening boxes with the window open does not recreate the whole grid.
+		local cards: { [string]: { card: TextButton, count: number, selected: boolean } } = {}
+		local refreshGrid: () -> ()
+		local function selectCard(key: string)
+			selectedKey = key
+			Sound.play("UIClick")
+			refreshGrid()
+			refreshDetail()
+		end
+		refreshGrid = function()
 			local profile = Store.profile
 			if not profile then
 				return
 			end
-			C.clear(grid, true)
 			local list = sortedItems(profile)
+			local seen = {}
 			for order, entry in list do
-				Widgets.itemCard(entry.item, entry.count, {
-					selected = entry.key == selectedKey,
+				seen[entry.key] = true
+				local selected = entry.key == selectedKey
+				local cached = cards[entry.key]
+				if cached and cached.count == entry.count and cached.selected == selected then
+					cached.card.LayoutOrder = order
+					continue
+				end
+				if cached then
+					cached.card:Destroy()
+				end
+				local card = Widgets.itemCard(entry.item, entry.count, {
+					selected = selected,
 					layoutOrder = order,
 					onClick = function()
-						selectedKey = entry.key
-						Sound.play("UIClick")
-						refreshGrid()
-						refreshDetail()
+						selectCard(entry.key)
 					end,
-				}).Parent =
-					grid
+				})
+				card.Parent = grid
+				cards[entry.key] = { card = card, count = entry.count, selected = selected }
+			end
+			for key, cached in cards do
+				if not seen[key] then
+					cached.card:Destroy()
+					cards[key] = nil
+				end
 			end
 			empty.Visible = #list == 0
 			capacityLabel.Text = string.format("Storage %d/%d", State.inventoryCount(profile), State.capacity(profile))

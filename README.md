@@ -60,7 +60,7 @@ Para publicar la experiencia: [docs/PUBLISHING.md](docs/PUBLISHING.md).
 | `src/shared/Visuals` | Modelos procedurales de artefactos y máquinas |
 | `src/server/Services` | Red, datos, mundo, parcelas, sesiones, simulación, clasificaciones, administración |
 | `src/client` | Interfaz, animaciones y controladores |
-| `tests/` | 87 pruebas en Lune con un entorno simulado de Roblox validado contra la API oficial |
+| `tests/` | 88 pruebas en Lune con un entorno simulado de Roblox validado contra la API oficial |
 | `tools/` | Verificación completa, simulador de economía, generador de sonidos, vistas previas de los modelos |
 | `assets/sounds` | 15 efectos de sonido originales listos para subir |
 

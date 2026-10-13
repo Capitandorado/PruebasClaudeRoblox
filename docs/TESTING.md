@@ -19,7 +19,7 @@ corren en **Lune** con un entorno simulado de Roblox (`tests/mock`):
 Se ejecutan los **scripts reales** del juego: el servidor arranca, los jugadores entran, la
 interfaz se construye y las pruebas pulsan sus botones.
 
-## Cobertura (87 pruebas)
+## Cobertura (88 pruebas)
 
 | Área | Ejemplos |
 | --- | --- |
@@ -29,7 +29,7 @@ interfaz se construye y las pruebas pulsan sus botones.
 | Guardado | Reentrar, bloqueo entre servidores, caída de un servidor, fallos transitorios y persistentes, perfil inválido, cierre del servidor, Studio sin API |
 | Efectos y eventos | Etiquetas y enlaces, vista previa, eventos que cambian la producción, catálogo de temporada, máquinas animadas |
 | Seguridad y multijugador | Fuzzing de todas las acciones, peticiones en paralelo, cliente manipulado, 8 jugadores independientes, servidor lleno, visitas, clasificación global |
-| Pulido | Escala y menú en pantalla de móvil, consejos de inicio, ventanas que no se reconstruyen sin cambios |
+| Pulido | Escala y menú en pantalla de móvil, consejos de inicio, ventanas que no se reconstruyen sin cambios, inventario que solo rehace las tarjetas que cambian |
 
 Prueba de carga (`tools/soak.luau`, 30 minutos simulados, 4 jugadores con la interfaz real):
 0 errores, 375 cajas abiertas, un jugador sale y vuelve a entrar, y el cierre guarda a todos.

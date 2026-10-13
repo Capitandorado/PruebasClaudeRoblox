@@ -85,4 +85,41 @@ return function(t)
 		t.ok(rt:findDescendant(shop, "box_printer") ~= row, "rebuilt once the printer became affordable")
 		t.eq(#rt:errors(), 0, errorsText(rt))
 	end)
+
+	t.test("the inventory grid only rebuilds the cards that changed", function()
+		local rt = Fixture.server({ isStudio = true })
+		local player = Fixture.join(rt, { userId = 1004, noClient = false })
+		rt:run(1, 0.1)
+		Fixture.request(rt, player, "Admin", "give", "ion_battery||1")
+		Fixture.request(rt, player, "Admin", "give", "scrap_cube||1")
+		local ui = player.PlayerGui.VoidFactoryUI
+		rt:click(rt:findDescendant(ui, "InventoryButton"))
+		rt:run(1, 0.1)
+		local window = rt:findDescendant(ui, "Window_Inventory")
+		local grid = rt:findDescendant(window, "Grid")
+		local battery = grid:FindFirstChild("ion_battery||1")
+		local cube = grid:FindFirstChild("scrap_cube||1")
+		t.ok(battery and cube, "both cards shown")
+		Fixture.request(rt, player, "Admin", "give", "scrap_cube||1")
+		Fixture.request(rt, player, "Admin", "give", "prism_lens||1")
+		rt:run(1, 0.1)
+		t.ok(grid:FindFirstChild("ion_battery||1") == battery, "unchanged card kept")
+		local newCube = grid:FindFirstChild("scrap_cube||1")
+		t.ok(newCube ~= cube and newCube.CountBadge.Count.Text == "x2", "changed count rebuilt")
+		t.ok(grid:FindFirstChild("prism_lens||1") ~= nil, "new item added")
+		Fixture.request(rt, player, "Sell", "ion_battery||1", 1)
+		rt:run(1, 0.1)
+		t.ok(grid:FindFirstChild("ion_battery||1") == nil, "sold item removed")
+		rt:click(grid:FindFirstChild("prism_lens||1"))
+		rt:run(0.2, 0.1)
+		local cards = 0
+		for _, child in grid:GetChildren() do
+			if child:IsA("TextButton") then
+				cards += 1
+			end
+		end
+		t.eq(cards, 2, "no duplicate cards after selecting")
+		t.ok(grid:FindFirstChild("scrap_cube||1") == newCube, "selection only rebuilds the cards involved")
+		t.eq(#rt:errors(), 0, errorsText(rt))
+	end)
 end
