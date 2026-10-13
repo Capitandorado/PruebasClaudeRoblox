@@ -14,6 +14,7 @@ local Announcements = require(Client.Controllers.Announcements)
 local FactoryView = require(Client.Controllers.FactoryView)
 local Rewards = require(Client.Controllers.Rewards)
 local Rescue = require(Client.Controllers.Rescue)
+local Celebrate = require(Client.Controllers.Celebrate)
 
 -- The store must listen before the remotes deliver the first (queued) state.
 Store.start()
@@ -36,6 +37,7 @@ Announcements.start()
 FactoryView.start()
 Rewards.start()
 Rescue.start()
+Celebrate.start()
 
 App.WindowChanged:Connect(function()
 	Placement.closePopup()

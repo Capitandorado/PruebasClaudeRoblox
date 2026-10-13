@@ -154,7 +154,7 @@ function Rewards.showWelcome(data: any, onClose: (() -> ())?)
 		string.format(
 			"Your factory kept running at %d%% speed while you were away (max %dh).",
 			math.floor(data.rate * 100 + 0.5),
-			Economy.OfflineMaxHours
+			math.floor((data.maxSeconds or Economy.OfflineMaxHours * 3600) / 3600 + 0.5)
 		),
 		138,
 		36,

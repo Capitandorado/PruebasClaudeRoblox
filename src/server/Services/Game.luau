@@ -13,6 +13,7 @@ local Shop = require(Shared.Logic.Actions.Shop)
 local Fusion = require(Shared.Logic.Actions.Fusion)
 local Progression = require(Shared.Logic.Actions.Progression)
 local Daily = require(Shared.Logic.Actions.Daily)
+local Rewards = require(Shared.Logic.Actions.Rewards)
 
 local Services = script.Parent
 local Net = require(Services.Net)
@@ -337,6 +338,48 @@ function Game.start()
 		end
 		Analytics.earn(session.player, result.energy, "TimedReward", "Daily")
 		Analytics.custom(session.player, "DailyStreak", result.streak)
+		return true, result
+	end)
+
+	-- Codes and collection milestones share the reward format (Logic/Actions/Rewards).
+	local REWARD_SECTIONS = sections(BOX_SECTIONS, "shards", "boosts", "codes", "milestones")
+	local function rewarded(session: Session, summary: any, sku: string)
+		Sessions.markDirty(session)
+		Sessions.replicate(session, REWARD_SECTIONS)
+		for _, boxResult in summary.results do
+			Game.announceGrants(session, boxResult)
+		end
+		Analytics.earn(session.player, summary.energy, "Gameplay", sku)
+		if summary.shards then
+			Analytics.economy(session.player, "Source", "Shards", summary.shards, "Gameplay", sku)
+		end
+	end
+
+	handle("RedeemCode", function(session, code)
+		local now = Sessions.now()
+		local ok, result = Rewards.redeemCode(session.profile, code, now, {
+			now = now,
+			rng = session.rng,
+			production = Sessions.production(session),
+		})
+		if not ok then
+			return false, result
+		end
+		rewarded(session, result, "Code")
+		return true, result
+	end)
+
+	handle("ClaimMilestone", function(session, id)
+		local now = Sessions.now()
+		local ok, result = Rewards.claimMilestone(session.profile, id, {
+			now = now,
+			rng = session.rng,
+			production = Sessions.production(session),
+		})
+		if not ok then
+			return false, result
+		end
+		rewarded(session, result, "Milestone")
 		return true, result
 	end)
 

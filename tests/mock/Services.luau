@@ -939,6 +939,46 @@ M.ServiceProvider = {
 
 M.ProximityPromptService = {}
 
+-- MarketplaceService: ownership and prices come from `runtime.marketplace`; prompts are
+-- recorded and completed by tests with Runtime:completePassPurchase/completeProductPurchase.
+M.MarketplaceService = {
+	UserOwnsGamePassAsync = function(_, userId, gamePassId)
+		if type(gamePassId) ~= "number" or gamePassId <= 0 then
+			error("MarketplaceService:UserOwnsGamePassAsync: invalid game pass id", 2)
+		end
+		local market = runtime().marketplace
+		scheduler():wait(market.latency)
+		if market.failOwnership then
+			error("HTTP 500 (Mock marketplace failure)", 2)
+		end
+		local owned = market.ownedPasses[userId]
+		return owned ~= nil and owned[gamePassId] == true
+	end,
+	GetProductInfoAsync = function(_, assetId, infoType)
+		if type(assetId) ~= "number" or assetId <= 0 then
+			error("MarketplaceService:GetProductInfoAsync: invalid asset id", 2)
+		end
+		local market = runtime().marketplace
+		scheduler():wait(market.latency)
+		return {
+			Name = "Item " .. assetId,
+			PriceInRobux = market.prices[assetId] or 99,
+			IsForSale = true,
+			InfoType = tostring(infoType),
+		}
+	end,
+	PromptGamePassPurchase = function(_, player, gamePassId)
+		local context = currentContext()
+		if context and context.kind ~= "client" then
+			error("PromptGamePassPurchase must be called from the client in this game", 2)
+		end
+		table.insert(runtime().marketplace.prompts, { kind = "pass", player = player, id = gamePassId })
+	end,
+	PromptProductPurchase = function(_, player, productId)
+		table.insert(runtime().marketplace.prompts, { kind = "product", player = player, id = productId })
+	end,
+}
+
 -- AnalyticsService: server-only, argument types as documented; every event is recorded in
 -- the runtime output under "analytics" so tests can assert on it.
 local function analyticsArgs(method, player, checks)

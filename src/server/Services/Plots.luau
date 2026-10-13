@@ -633,12 +633,8 @@ function Plots.assign(session: any): number?
 			local model = plotModels[index]
 			model:SetAttribute("OwnerUserId", session.userId)
 			model:SetAttribute("OwnerName", session.player.DisplayName)
-			local pole = model:FindFirstChild("SignPole")
-			local sign = pole and pole:FindFirstChild("Sign")
-			if sign then
-				(sign:FindFirstChild("Owner") :: TextLabel).Text = session.player.DisplayName .. "'s Factory"
-			end
 			session.plot = index
+			Plots.refreshOwner(session)
 			Plots.refresh(session)
 			Plots.updateSign(session, 0)
 			-- The character may have spawned before the plot was assigned.
@@ -647,6 +643,21 @@ function Plots.assign(session: any): number?
 		end
 	end
 	return nil
+end
+
+-- Owner line of the plot sign (VIP pass owners get a golden crown).
+function Plots.refreshOwner(session: any)
+	local model = plotModels[session.plot]
+	local pole = model and model:FindFirstChild("SignPole")
+	local sign = pole and pole:FindFirstChild("Sign")
+	local label = sign and sign:FindFirstChild("Owner") :: TextLabel?
+	if not label then
+		return
+	end
+	local vip = session.profile.passes and session.profile.passes.vip == true
+	label.Text = (if vip then "👑 " else "") .. session.player.DisplayName .. "'s Factory"
+	label.TextColor3 = if vip then Color3.fromRGB(255, 215, 90) else Color3.new(1, 1, 1)
+	model:SetAttribute("Vip", vip)
 end
 
 function Plots.release(session: any)

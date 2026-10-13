@@ -177,8 +177,12 @@ function App.toast(text: string, kind: string?)
 end
 
 -- Shows the friendly message for a failed server response.
+function App.errorText(err: string?): string
+	return Messages[err or ""] or Messages.ServerError
+end
+
 function App.showError(err: string?)
-	App.toast(Messages[err or ""] or Messages.ServerError, "error")
+	App.toast(App.errorText(err), "error")
 	Sound.play("Error")
 end
 

@@ -16,6 +16,7 @@ type Profile = any
 export type Result = {
 	away: number,
 	seconds: number,
+	maxSeconds: number,
 	rate: number,
 	eps: number,
 	energy: number,
@@ -25,11 +26,12 @@ export type Result = {
 local Offline = {}
 
 function Offline.rate(profile: Profile): number
-	return math.min(Economy.OfflineMaxRate, Economy.OfflineRate + State.perkBonus(profile, "nightshift"))
+	local pass = State.passEffect(profile, "offlineRate")
+	return math.min(Economy.OfflineMaxRate + pass, Economy.OfflineRate + State.perkBonus(profile, "nightshift") + pass)
 end
 
-function Offline.maxSeconds(): number
-	return Economy.OfflineMaxHours * 3600
+function Offline.maxSeconds(profile: Profile): number
+	return (Economy.OfflineMaxHours + State.passEffect(profile, "offlineHours")) * 3600
 end
 
 -- Grants the progress made since `profile.lastOnline` and returns what was earned, or nil
@@ -43,9 +45,9 @@ function Offline.apply(profile: Profile, now: number, rng: Roller.Rng): Result?
 	if away < Economy.OfflineMinSeconds then
 		return nil
 	end
-	local seconds = math.min(away, Offline.maxSeconds())
-	-- Steady production only: no Void Surge and no timed server event.
-	local production = State.computeProduction(profile, 1, 1)
+	local seconds = math.min(away, Offline.maxSeconds(profile))
+	-- Steady production only: no Void Surge, timed server event or boost.
+	local production = State.computeProduction(profile, 1, 1, true)
 	local rate = Offline.rate(profile)
 	local energy = math.floor(production.total * seconds * rate)
 	Inventory.earn(profile, energy, false)
@@ -69,6 +71,7 @@ function Offline.apply(profile: Profile, now: number, rng: Roller.Rng): Result?
 	return {
 		away = away,
 		seconds = seconds,
+		maxSeconds = Offline.maxSeconds(profile),
 		rate = rate,
 		eps = production.total,
 		energy = energy,

@@ -14,6 +14,7 @@ local Mutations = require(Shared.Config.Mutations)
 local Economy = require(Shared.Config.Economy)
 local Rarities = require(Shared.Config.Rarities)
 local DailyConfig = require(Shared.Config.Daily)
+local Monetization = require(Shared.Config.Monetization)
 local Items = require(script.Parent.Items)
 local MachineStats = require(script.Parent.MachineStats)
 
@@ -46,6 +47,13 @@ export type Profile = {
 	playTime: number,
 	lastOnline: number,
 	daily: DailyState,
+	-- Robux store: pass ownership cache (re-checked on join), boost seconds left,
+	-- recent Developer Product receipts (idempotency), redeemed codes, collection milestones.
+	passes: { [string]: boolean },
+	boosts: { [string]: number },
+	receipts: { string },
+	codes: { [string]: boolean },
+	milestones: { [string]: boolean },
 	orphaned: { [string]: number },
 }
 
@@ -67,6 +75,7 @@ Profile.StatNames = {
 }
 
 Profile.AutoSellRarities = { "Common", "Uncommon", "Rare" }
+Profile.MaxReceipts = 50
 
 local function newMachineState(machineId: string, now: number): MachineState
 	local cap = MachineStats.getStat(machineId, "chargeCap", 1)
@@ -107,6 +116,11 @@ function Profile.new(now: number): Profile
 		playTime = 0,
 		lastOnline = 0,
 		daily = { day = 0, streak = 0, claims = 0 },
+		passes = {},
+		boosts = {},
+		receipts = {},
+		codes = {},
+		milestones = {},
 		orphaned = {},
 	}
 end
@@ -170,6 +184,39 @@ function Profile.reconcile(raw: any, now: number): Profile
 	profile.playTime = number(data.playTime, 0, 0)
 	-- A future timestamp (clock skew between servers) counts as "just now".
 	profile.lastOnline = number(data.lastOnline, 0, 0, now)
+	if type(data.passes) == "table" then
+		for key, owned in data.passes do
+			if owned == true and Monetization.pass(key) then
+				profile.passes[key] = true
+			end
+		end
+	end
+	if type(data.boosts) == "table" then
+		for key, seconds in data.boosts do
+			if Monetization.Boosts[key] and isFiniteNumber(seconds) and seconds > 0 then
+				profile.boosts[key] = math.min(seconds, Monetization.MaxBoostSeconds)
+			end
+		end
+	end
+	if type(data.receipts) == "table" then
+		for _, receipt in data.receipts do
+			if type(receipt) == "string" and #receipt <= 64 and #profile.receipts < Profile.MaxReceipts then
+				table.insert(profile.receipts, receipt)
+			end
+		end
+	end
+	for _, field in { "codes", "milestones" } do
+		local saved = data[field]
+		if type(saved) == "table" then
+			local count = 0
+			for key, done in saved do
+				if type(key) == "string" and #key <= 40 and done == true and count < 500 then
+					(profile :: any)[field][key] = true
+					count += 1
+				end
+			end
+		end
+	end
 	if type(data.daily) == "table" then
 		profile.daily.day = integer(data.daily.day, 0, 0, math.floor(now / DailyConfig.DaySeconds))
 		profile.daily.streak = integer(data.daily.streak, 0, 0)

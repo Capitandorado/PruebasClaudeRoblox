@@ -7,6 +7,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Economy = require(Shared.Config.Economy)
 local Simulation = require(Shared.Logic.Simulation)
+local Monetization = require(Shared.Config.Monetization)
 local Events = require(Shared.Logic.Events)
 local Format = require(Shared.Util.Format)
 
@@ -33,20 +34,41 @@ local PRINT_SECTIONS = {
 	"playTime",
 }
 
+-- Running boosts tick down every second: replicate them while any is active.
+local function withBoosts(session: Sessions.Session, sections: { string }, boostEnded: boolean): { string }
+	if next(session.profile.boosts) == nil and not boostEnded then
+		return sections
+	end
+	local list = table.clone(sections)
+	table.insert(list, "boosts")
+	return list
+end
+
 local function tickSession(session: Sessions.Session, dt: number, now: number)
 	local events = Simulation.tick(session.profile, session.runtime, dt, now, session.rng)
 	Analytics.earn(session.player, events.energy, "Gameplay", "Production")
 	local production = Sessions.production(session)
+	local boostEnded = events.boostEnded ~= nil
 	if #events.printed > 0 then
-		Sessions.replicate(session, PRINT_SECTIONS)
+		Sessions.replicate(session, withBoosts(session, PRINT_SECTIONS, boostEnded))
 		for _, result in events.printed do
 			Net.notify(session.player, "Printed", result)
 			Game.announceGrants(session, result)
 		end
 	elseif events.surgeStarted then
-		Sessions.replicate(session, { "energy", "lifetimeEnergy", "runEnergy", "stats", "machines" })
+		Sessions.replicate(
+			session,
+			withBoosts(session, { "energy", "lifetimeEnergy", "runEnergy", "stats", "machines" }, boostEnded)
+		)
 	else
-		Sessions.replicate(session, TICK_SECTIONS)
+		Sessions.replicate(session, withBoosts(session, TICK_SECTIONS, boostEnded))
+	end
+	if events.boostEnded then
+		local boost = Monetization.Boosts[events.boostEnded]
+		Net.notify(session.player, "Toast", {
+			text = (if boost then boost.name else "Boost") .. " boost ended",
+			kind = "info",
+		})
 	end
 	if events.printerBlocked then
 		Net.notify(session.player, "Toast", { text = "Box Printer paused: inventory full", kind = "warning" })

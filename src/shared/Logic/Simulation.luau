@@ -26,6 +26,7 @@ export type TickEvents = {
 	surgeStarted: boolean,
 	surgeEnded: boolean,
 	energy: number,
+	boostEnded: string?,
 }
 
 local Simulation = {}
@@ -127,6 +128,18 @@ function Simulation.tick(profile: Profile, runtime: Runtime, dt: number, now: nu
 	end
 	profile.playTime += dt
 	profile.lastOnline = now
+
+	-- Boosts only run down while playing.
+	for key, remaining in profile.boosts do
+		local left = math.max(0, remaining - dt)
+		if left <= 0 then
+			profile.boosts[key] = nil
+			runtime.dirty = true
+			events.boostEnded = key
+		else
+			profile.boosts[key] = left
+		end
+	end
 
 	-- Box Printer.
 	local interval = State.printerInterval(profile, production)

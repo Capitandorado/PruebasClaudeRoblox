@@ -12,6 +12,7 @@ local ORDER = {
 	"Sessions",
 	"Leaderboards",
 	"Game",
+	"Monetization",
 	"Simulation",
 	"Admin",
 }

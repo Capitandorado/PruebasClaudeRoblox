@@ -26,6 +26,7 @@ export type Context = {
 	surgeMult: number?,
 	eventMult: number?,
 	collectionBonus: number?,
+	shopMult: number?, -- Robux passes and boosts
 }
 
 export type EntropySource = { slot: number, eps: number, min: number, max: number }
@@ -116,6 +117,7 @@ function Production.compute(context: Context): Result
 		* (context.surgeMult or 1)
 		* (1 + (context.collectionBonus or 0))
 		* (context.eventMult or 1)
+		* (context.shopMult or 1)
 
 	-- Pass 2: per-slot output.
 	local perSlot: { [number]: number } = {}

@@ -280,6 +280,17 @@ function Runtime.new(options)
 	self.services = {}
 	self.pendingClientEvents = {}
 	self.characterAutoLoads = options.characterAutoLoads ~= false
+	-- { ["Shared.Config.X"] = function(moduleValue) } applied in every VM after loading, matched
+	-- against the end of the module's full name (tests use it to fill config placeholders).
+	self.modulePatches = options.modulePatches or {}
+	self.marketplace = {
+		ownedPasses = {}, -- [userId] = { [passId] = true }
+		prices = {},
+		prompts = {},
+		latency = 0.05,
+		failOwnership = false,
+		nextPurchaseId = 1,
+	}
 
 	world.runtime = self
 	Instance.init(world)
@@ -567,6 +578,12 @@ function Runtime:require(vm, target)
 		error("Module code did not return exactly one value: " .. Instance.getFullName(target), 2)
 	end
 	cached.value = results[2]
+	local fullName = Instance.getFullName(target)
+	for suffix, patch in self.modulePatches do
+		if fullName == suffix or string.sub(fullName, -(#suffix + 1)) == "." .. suffix then
+			patch(cached.value)
+		end
+	end
 	return cached.value
 end
 
@@ -1103,6 +1120,42 @@ end
 
 function Runtime:findDescendant(root, name)
 	return Instance.findFirstChild(root, name, true)
+end
+
+-- Completes a Game Pass prompt as Roblox would (ownership + server event).
+function Runtime:completePassPurchase(player, passId, purchased)
+	if purchased then
+		self.marketplace.ownedPasses[player.UserId] = self.marketplace.ownedPasses[player.UserId] or {}
+		self.marketplace.ownedPasses[player.UserId][passId] = true
+	end
+	local service = self.services.MarketplaceService
+	self:asServer(function()
+		Instance.getSignal(service, "PromptGamePassPurchaseFinished"):Fire(player, passId, purchased == true)
+	end)
+	self:run(0.3, 0.05)
+end
+
+-- Delivers a Developer Product receipt to the server's ProcessReceipt callback and returns
+-- its decision. Pass the same `purchaseId` to simulate Roblox retrying a receipt.
+function Runtime:completeProductPurchase(player, productId, purchaseId)
+	if not purchaseId then
+		purchaseId = "mock-purchase-" .. self.marketplace.nextPurchaseId
+		self.marketplace.nextPurchaseId += 1
+	end
+	local service = self.services.MarketplaceService
+	local callback = Instance.callback(service, "ProcessReceipt")
+	assert(callback, "the server did not set MarketplaceService.ProcessReceipt")
+	local decision = self:asServer(function()
+		return callback({
+			PlayerId = player.UserId,
+			ProductId = productId,
+			PurchaseId = purchaseId,
+			CurrencySpent = self.marketplace.prices[productId] or 99,
+			CurrencyType = "Robux",
+			PlaceIdWherePurchased = 0,
+		})
+	end)
+	return decision, purchaseId
 end
 
 function Runtime:errors()

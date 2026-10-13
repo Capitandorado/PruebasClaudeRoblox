@@ -15,6 +15,7 @@ local Roller = require(script.Parent.Roller)
 local Events = require(script.Parent.Events)
 local Artifacts = require(Shared.Config.Artifacts)
 local Mutations = require(Shared.Config.Mutations)
+local Monetization = require(Shared.Config.Monetization)
 
 type Profile = any
 
@@ -38,8 +39,43 @@ function State.perkBonus(profile: Profile, id: string): number
 	return if perk then perk.perLevel * perkLevel(profile, id) else 0
 end
 
+-- Robux store -----------------------------------------------------------------------
+
+function State.hasPass(profile: Profile, key: string): boolean
+	return profile.passes ~= nil and profile.passes[key] == true
+end
+
+-- Combined effect of the owned passes: fields ending in "Mult" multiply, others add.
+function State.passEffect(profile: Profile, field: string): number
+	local multiplicative = string.sub(field, -4) == "Mult"
+	local value = if multiplicative then 1 else 0
+	if profile.passes then
+		for key, owned in profile.passes do
+			local effect = owned == true and (Monetization.PassEffects :: any)[key]
+			local amount = effect and effect[field]
+			if type(amount) == "number" then
+				value = if multiplicative then value * amount else value + amount
+			end
+		end
+	end
+	return value
+end
+
+-- Seconds of play left on a boost ("energy", "luck").
+function State.boostRemaining(profile: Profile, key: string): number
+	return if profile.boosts then profile.boosts[key] or 0 else 0
+end
+
+function State.boostMult(profile: Profile, key: string): number
+	local boost = Monetization.Boosts[key]
+	return if boost and State.boostRemaining(profile, key) > 0 then boost.multiplier else 1
+end
+
 function State.capacity(profile: Profile): number
-	return Economy.BaseStorage + State.upgradeBonus(profile, "storage") + State.perkBonus(profile, "deepstorage")
+	return Economy.BaseStorage
+		+ State.upgradeBonus(profile, "storage")
+		+ State.perkBonus(profile, "deepstorage")
+		+ State.passEffect(profile, "storage")
 end
 
 function State.inventoryCount(profile: Profile): number
@@ -91,9 +127,19 @@ function State.collectionBonus(profile: Profile): number
 	return bonus
 end
 
--- `eventMult` overrides the timed event multiplier (offline progress ignores events).
-function State.computeProduction(profile: Profile, surgeMult: number?, eventMult: number?): Production.Result
+-- `eventMult` overrides the timed event multiplier and `noBoosts` leaves out timed boosts
+-- (offline progress and Energy packs use steady production).
+function State.computeProduction(
+	profile: Profile,
+	surgeMult: number?,
+	eventMult: number?,
+	noBoosts: boolean?
+): Production.Result
 	local overclock = State.machineLevel(profile, "overclocker")
+	local shopMult = (1 + State.passEffect(profile, "production")) * State.passEffect(profile, "productionMult")
+	if not noBoosts then
+		shopMult *= State.boostMult(profile, "energy")
+	end
 	return Production.compute({
 		placed = State.placedItems(profile),
 		machineBonus = if overclock > 0 then MachineStats.getStat("overclocker", "productionBonus", overclock) else 0,
@@ -102,6 +148,7 @@ function State.computeProduction(profile: Profile, surgeMult: number?, eventMult
 		surgeMult = surgeMult or 1,
 		collectionBonus = State.collectionBonus(profile),
 		eventMult = eventMult or Events.current.productionMult,
+		shopMult = shopMult,
 	})
 end
 
@@ -119,15 +166,21 @@ function State.luck(profile: Profile, machineId: string, production: Production.
 	if machineLuck <= 0 then
 		machineLuck = 1
 	end
-	local bonus = State.upgradeBonus(profile, "luck") + State.perkBonus(profile, "fortune") + production.luckBonus
-	return Roller.clampLuck(machineLuck * (1 + bonus) * Events.current.luckMult)
+	local bonus = State.upgradeBonus(profile, "luck")
+		+ State.perkBonus(profile, "fortune")
+		+ production.luckBonus
+		+ State.passEffect(profile, "luck")
+	local shopMult = State.passEffect(profile, "luckMult") * State.boostMult(profile, "luck")
+	return Roller.clampLuck(machineLuck * (1 + bonus) * Events.current.luckMult * shopMult)
 end
 
 -- Interval divisor from speed sources (Quick Assembly upgrade + Accelerator artifacts).
 function State.speedFactor(profile: Profile, production: Production.Result): number
 	local upgradeSpeed = State.upgradeBonus(profile, "speed")
 	-- Event speed is applied on top of the cap; interval floors still apply.
-	return (1 + math.min(Economy.MaxSpeedBonus, upgradeSpeed + production.speedBonus)) * (1 + Events.current.speedBonus)
+	return (1 + math.min(Economy.MaxSpeedBonus, upgradeSpeed + production.speedBonus))
+		* (1 + Events.current.speedBonus)
+		* (1 + State.passEffect(profile, "speed"))
 end
 
 function State.chargeInterval(profile: Profile, machineId: string, production: Production.Result): number
@@ -143,7 +196,7 @@ function State.chargeCap(profile: Profile, machineId: string): number
 	local level = math.max(1, State.machineLevel(profile, machineId))
 	local cap = MachineStats.getStat(machineId, "chargeCap", level)
 	if cap > 0 and machineId == Machines.StarterId then
-		cap += State.perkBonus(profile, "overflow")
+		cap += State.perkBonus(profile, "overflow") + State.passEffect(profile, "charges")
 	end
 	return cap
 end

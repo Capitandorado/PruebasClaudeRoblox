@@ -103,6 +103,10 @@ local ALL_SECTIONS = {
 	"runBestEps",
 	"playTime",
 	"daily",
+	"passes",
+	"boosts",
+	"codes",
+	"milestones",
 }
 Sessions.AllSections = ALL_SECTIONS
 
@@ -129,6 +133,7 @@ end
 function Sessions.replicateFull(session: Session)
 	local profile = table.clone(session.profile) :: any
 	profile.orphaned = nil
+	profile.receipts = nil
 	Net.state(session.player, "Full", {
 		profile = profile,
 		runtime = runtimeInfo(session),
@@ -148,6 +153,7 @@ function Sessions.welcomePayload(result: Offline.Result)
 	return {
 		away = result.away,
 		seconds = result.seconds,
+		maxSeconds = result.maxSeconds,
 		rate = result.rate,
 		energy = result.energy,
 		items = items,

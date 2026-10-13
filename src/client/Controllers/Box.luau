@@ -64,6 +64,8 @@ local function outputPosition(plotIndex: number, machineId: string): Vector3?
 	return nil
 end
 
+Box.outputPosition = outputPosition
+
 local function fallbackPosition(): Vector3
 	local camera = workspace.CurrentCamera
 	if camera then
@@ -81,6 +83,8 @@ local function effectsFolder(): Folder
 	end
 	return folder :: Folder
 end
+
+Box.effectsFolder = effectsFolder
 
 -- Visual pieces -----------------------------------------------------------------------
 

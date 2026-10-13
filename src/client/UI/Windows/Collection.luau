@@ -12,9 +12,13 @@ local Format = require(Shared.Util.Format)
 local Effects = require(Shared.Logic.Effects)
 local Roller = require(Shared.Logic.Roller)
 local State = require(Shared.Logic.State)
+local Milestones = require(Shared.Config.Milestones)
+local Rewards = require(Shared.Logic.Actions.Rewards)
 
 local Client = script.Parent.Parent.Parent
 local Store = require(Client.Core.Store)
+local Remote = require(Client.Core.Remote)
+local Box = require(Client.Controllers.Box)
 local Sound = require(Client.Core.Sound)
 local Theme = require(script.Parent.Parent.Theme)
 local C = require(script.Parent.Parent.Components)
@@ -37,7 +41,7 @@ return {
 	title = "Collection",
 	icon = "📖",
 	size = Vector2.new(640, 480),
-	build = function(content: Frame, _app: any)
+	build = function(content: Frame, app: any)
 		local currentTab = "Artifacts"
 		local currentBox = "basic"
 		local selectedId: string? = nil
@@ -342,6 +346,58 @@ return {
 			})
 		end
 
+		-- Rewards for growing the collection (Config/Milestones).
+		local function renderRewards(profile: any)
+			local artifacts, variants = Rewards.collectionCounts(profile)
+			summary.Text =
+				string.format("Found %d artifacts and %d variants  •  rewards are kept forever", artifacts, variants)
+			local list = C.scroll({ Name = "Milestones", Size = UDim2.fromScale(1, 1), Parent = body })
+			C.list(Enum.FillDirection.Vertical, 8).Parent = list
+			C.padding(4).Parent = list
+			for order, milestone in Milestones.List do
+				local progress, target = Rewards.milestoneProgress(profile, milestone)
+				local claimed = profile.milestones[milestone.id] == true
+				local ready = not claimed and progress >= target
+				local _, button = Widgets.row(list, {
+					name = milestone.id,
+					title = string.format(
+						"%s %d %s",
+						if milestone.artifacts then "📖 Discover" else "✨ Find",
+						target,
+						if milestone.artifacts then "artifacts" else "mutation variants"
+					),
+					description = string.format(
+						"%s   (%d/%d)",
+						Rewards.describe(profile, milestone.reward),
+						math.min(progress, target),
+						target
+					),
+					accent = if claimed then Colors.Good elseif ready then Colors.Energy else Colors.Stroke,
+					layoutOrder = order,
+				})
+				if claimed then
+					C.setButton(button, "CLAIMED ✓", false, Colors.Good)
+				elseif ready then
+					C.setButton(button, "CLAIM", true, Colors.Good)
+					C.onClick(button, function()
+						local response = Remote.request("ClaimMilestone", milestone.id)
+						if response.ok then
+							Sound.play("QuestComplete")
+							app.toast("Collection reward: " .. response.data.text, "success")
+							if #response.data.results > 0 then
+								app.closeWindow()
+								Box.playResults(response.data.results)
+							end
+						else
+							app.showError(response.err)
+						end
+					end)
+				else
+					C.setButton(button, string.format("%d/%d", progress, target), false)
+				end
+			end
+		end
+
 		local function refresh()
 			local profile = Store.profile
 			if not profile then
@@ -350,12 +406,14 @@ return {
 			C.clear(body)
 			if currentTab == "Artifacts" then
 				renderArtifacts(profile)
+			elseif currentTab == "Rewards" then
+				renderRewards(profile)
 			else
 				renderOdds(profile)
 			end
 		end
 
-		local selectTab = Widgets.tabs(content, { "Artifacts", "Odds" }, function(name)
+		local selectTab = Widgets.tabs(content, { "Artifacts", "Odds", "Rewards" }, function(name)
 			currentTab = name
 			refresh()
 		end)
@@ -370,8 +428,10 @@ return {
 					currentTab = args.tab
 					selectTab(currentTab)
 				end
-				watching =
-					Store.watch({ "collection", "bestRarity", "upgrades", "perks", "placed", "machines" }, refresh)
+				watching = Store.watch(
+					{ "collection", "bestRarity", "upgrades", "perks", "placed", "machines", "milestones" },
+					refresh
+				)
 			end,
 			onClose = function()
 				if watching then

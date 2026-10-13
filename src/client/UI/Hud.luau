@@ -12,6 +12,9 @@ local Format = require(Shared.Util.Format)
 local State = require(Shared.Logic.State)
 local Events = require(Shared.Logic.Events)
 local Progression = require(Shared.Logic.Actions.Progression)
+local Monetization = require(Shared.Config.Monetization)
+local Milestones = require(Shared.Config.Milestones)
+local Rewards = require(Shared.Logic.Actions.Rewards)
 local Daily = require(Shared.Logic.Actions.Daily)
 
 local Client = script.Parent.Parent
@@ -120,13 +123,76 @@ local function buildTopBar(parent: Frame)
 		Position = UDim2.fromOffset(56, 40),
 		Parent = pill,
 	})
-	refs.effectsPill, refs.effects = infoPill(bar, "EffectsPill", 2, 500, Colors.TextDim)
-	refs.shardsPill, refs.shards = infoPill(bar, "ShardsPill", 3, 220, Colors.Shards)
-	refs.eventPill, refs.event = infoPill(bar, "EventPill", 4, 420, Colors.Text)
-	refs.visitPill, refs.visit = infoPill(bar, "VisitPill", 6, 360, Colors.Accent, Color3.fromRGB(16, 40, 60))
+	refs.boostPill, refs.boost =
+		infoPill(bar, "BoostPill", 2, 360, Color3.fromRGB(255, 225, 120), Color3.fromRGB(70, 50, 10))
+	refs.effectsPill, refs.effects = infoPill(bar, "EffectsPill", 3, 500, Colors.TextDim)
+	refs.shardsPill, refs.shards = infoPill(bar, "ShardsPill", 4, 220, Colors.Shards)
+	refs.eventPill, refs.event = infoPill(bar, "EventPill", 5, 420, Colors.Text)
+	refs.visitPill, refs.visit = infoPill(bar, "VisitPill", 7, 360, Colors.Accent, Color3.fromRGB(16, 40, 60))
 	refs.surgePanel, refs.surge =
-		infoPill(bar, "Surge", 5, 300, Color3.fromRGB(255, 200, 255), Color3.fromRGB(60, 10, 90))
+		infoPill(bar, "Surge", 6, 300, Color3.fromRGB(255, 200, 255), Color3.fromRGB(60, 10, 90))
 	refs.surge.FontFace = Theme.Fonts.Bold
+end
+
+-- Gold STORE button next to the Energy counter (Robux passes, boosts and codes).
+local function buildStoreButton(parent: Frame)
+	local button = C.new("TextButton", {
+		Name = "StoreButton",
+		Text = "",
+		AutoButtonColor = false,
+		AnchorPoint = Vector2.new(0, 0),
+		Position = UDim2.new(0.5, 158, 0, 8),
+		Size = UDim2.fromOffset(96, 64),
+		BackgroundColor3 = Color3.fromRGB(255, 190, 60),
+		Children = {
+			C.corner(Theme.Corner),
+			C.gradient(Color3.fromRGB(255, 225, 120), Color3.fromRGB(230, 140, 30)),
+			C.stroke(Color3.fromRGB(255, 240, 180), 2, 0.2),
+		},
+		Parent = parent,
+	})
+	C.text({
+		Name = "Icon",
+		Text = "🛒",
+		TextSize = 26,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Size = UDim2.new(1, 0, 0, 34),
+		Position = UDim2.fromOffset(0, 4),
+		Parent = button,
+	})
+	C.text({
+		Name = "Label",
+		Text = "STORE",
+		FontFace = Theme.Fonts.Bold,
+		TextSize = 15,
+		TextColor3 = Color3.fromRGB(60, 30, 0),
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Size = UDim2.new(1, 0, 0, 20),
+		Position = UDim2.fromOffset(0, 38),
+		Parent = button,
+	})
+	local scale = C.new("UIScale", { Parent = button })
+	button.MouseEnter:Connect(function()
+		C.tween(scale, 0.1, { Scale = 1.06 })
+	end)
+	button.MouseLeave:Connect(function()
+		C.tween(scale, 0.1, { Scale = 1 })
+	end)
+	button.Activated:Connect(function()
+		App.toggleWindow("Store")
+	end)
+	-- A gentle shine every few seconds draws the eye without being noisy.
+	task.spawn(function()
+		while button.Parent do
+			task.wait(6)
+			if App.currentWindow() == nil then
+				C.tween(scale, 0.15, { Scale = 1.1 })
+				task.wait(0.16)
+				C.tween(scale, 0.25, { Scale = 1 }, Enum.EasingStyle.Back)
+			end
+		end
+	end)
+	refs.storeButton = button
 end
 
 local function badge(button: Instance): Frame
@@ -583,6 +649,26 @@ local function refreshBadges()
 	badges.Quests.Visible = questReady or Daily.status(profile, Store.now()).available
 	badges.Rebirth.Visible = profile.energy >= Rebirth.cost(profile.rebirths)
 	badges.Inventory.Visible = State.freeSpace(profile) <= 0
+	-- One-time buys the player can afford right now: a new machine or the next expansion.
+	local canBuy = false
+	for _, machine in Machines.List do
+		if
+			not profile.machines[machine.id]
+			and profile.rebirths >= machine.rebirthRequired
+			and profile.energy >= machine.cost
+		then
+			canBuy = true
+		end
+	end
+	local expansionCost = State.expansionCost(profile)
+	badges.Shop.Visible = canBuy or (expansionCost ~= nil and profile.energy >= expansionCost)
+	local milestoneReady = false
+	for _, milestone in Milestones.List do
+		if Rewards.milestoneReady(profile, milestone) then
+			milestoneReady = true
+		end
+	end
+	badges.Collection.Visible = milestoneReady
 end
 
 local function refreshTop()
@@ -618,6 +704,17 @@ local function refreshTop()
 	end
 	refs.effectsPill.Visible = #parts > 0 and not refs.effectsPill:GetAttribute("HiddenByWindow")
 	refs.effects.Text = table.concat(parts, "   ")
+	-- Running boosts (they count down while playing).
+	local boosts = {}
+	for key, boost in Monetization.Boosts do
+		local remaining = State.boostRemaining(profile, key)
+		if remaining > 0 then
+			table.insert(boosts, boost.icon .. " " .. boost.name .. " " .. Format.duration(remaining))
+		end
+	end
+	table.sort(boosts)
+	refs.boostPill.Visible = #boosts > 0 and not refs.boostPill:GetAttribute("HiddenByWindow")
+	refs.boost.Text = "🚀 " .. table.concat(boosts, "   ")
 end
 
 local function refreshEvent()
@@ -643,6 +740,7 @@ end
 function Hud.start()
 	local root = App.layers.Hud
 	buildTopBar(root)
+	buildStoreButton(root)
 	buildMenu(root)
 	buildBoxPanel(root)
 	buildQuestTracker(root)
