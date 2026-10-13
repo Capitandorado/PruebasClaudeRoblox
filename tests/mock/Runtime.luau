@@ -904,14 +904,58 @@ function Runtime:onStep(dt)
 	end
 end
 
+-- CollectionService semantics: "instance added" fires when a tagged instance is (or becomes)
+-- part of the DataModel, "removed" when it leaves it — not merely when the tag is set.
+local function inGame(self, inst)
+	local current = inst
+	while current do
+		if current == self.game then
+			return true
+		end
+		current = internals[current].parent
+	end
+	return false
+end
+
+local function fireTags(self, inst, signalsKey)
+	local collection = self.services.CollectionService
+	if not collection then
+		return
+	end
+	local signals = internals[collection][signalsKey]
+	if not signals then
+		return
+	end
+	local function visit(target)
+		for tag in internals[target].tags do
+			local signal = signals[tag]
+			if signal then
+				signal:Fire(target)
+			end
+		end
+		for _, child in internals[target].children do
+			visit(child)
+		end
+	end
+	visit(inst)
+end
+
 function Runtime:onTagAdded(inst, tag)
 	local collection = self.services.CollectionService
-	if collection then
+	if collection and inGame(self, inst) then
 		local data = internals[collection]
 		local signal = data.tagSignals and data.tagSignals[tag]
 		if signal then
 			signal:Fire(inst)
 		end
+	end
+end
+
+function Runtime:onReparent(inst, newParent)
+	if newParent and inGame(self, inst) then
+		fireTags(self, inst, "tagSignals")
+	elseif newParent == nil then
+		fireTags(self, inst, "tagRemovedSignals")
 	end
 end
 

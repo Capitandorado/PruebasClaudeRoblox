@@ -14,8 +14,9 @@ local App = require(Client.UI.App)
 
 local WorldFX = {}
 
-local ANIMATE_DISTANCE = 140
-local MAX_ANIMATED = 60
+local ANIMATE_DISTANCE = 100
+local NEAR_DISTANCE = 40
+local MAX_ANIMATED = 30
 
 type Floating = { model: Model, base: CFrame, phase: number }
 
@@ -132,6 +133,7 @@ function WorldFX.start()
 
 	local clock = 0
 	local hueClock = 0
+	local frame = 0
 	RunService.RenderStepped:Connect(function(dt)
 		clock += dt
 		local camera = workspace.CurrentCamera
@@ -170,6 +172,7 @@ function WorldFX.start()
 			end
 		end
 		local animated = 0
+		frame += 1
 		for model, entry in floating do
 			if not model.Parent then
 				floating[model] = nil
@@ -178,7 +181,9 @@ function WorldFX.start()
 			if animated >= MAX_ANIMATED then
 				break
 			end
-			if (entry.base.Position - cameraPosition).Magnitude < ANIMATE_DISTANCE then
+			local distance = (entry.base.Position - cameraPosition).Magnitude
+			-- Close artifacts animate every frame, farther ones every other frame.
+			if distance < NEAR_DISTANCE or (distance < ANIMATE_DISTANCE and frame % 2 == 0) then
 				animated += 1
 				local bob = math.sin(clock * 1.6 + entry.phase) * 0.35
 				model:PivotTo(entry.base * CFrame.new(0, bob, 0) * CFrame.Angles(0, clock * 0.8 + entry.phase, 0))

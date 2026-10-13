@@ -39,3 +39,15 @@ para mostrar valores derivados (producción, suerte, costes) idénticos a los de
 | Simulation | Un único bucle de Heartbeat para la producción de todos los jugadores |
 | Leaderboards | Clasificaciones del servidor y globales |
 | Admin | Herramientas de depuración protegidas |
+
+## Vistas previas de los modelos
+
+Sin abrir Studio se pueden revisar las formas y colores de los modelos procedurales:
+
+```
+lune run tools/preview/export.luau build/preview.json   # geometría real generada por el juego
+python3 tools/preview/render.py build/preview.json docs/images
+lune run tools/part_audit.luau                           # piezas/luces/partículas por modelo
+```
+
+El render es una aproximación (trazado de rayos simple con numpy), no el motor de Roblox.

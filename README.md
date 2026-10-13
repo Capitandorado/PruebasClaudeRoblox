@@ -16,6 +16,12 @@ artefactos o reinicia tus datos para probar la progresión en segundos.
 
 Para publicar la experiencia: [docs/PUBLISHING.md](docs/PUBLISHING.md).
 
+![Parcela al final de la partida](docs/images/plot.png)
+
+*Render aproximado generado a partir de los modelos reales del juego con
+`tools/preview` (no es una captura de Roblox). Más: [artefactos](docs/images/artifacts.png),
+[máquinas](docs/images/machines.png).*
+
 ## Qué incluye
 
 | Sistema | Detalles |
@@ -52,7 +58,7 @@ Para publicar la experiencia: [docs/PUBLISHING.md](docs/PUBLISHING.md).
 | `src/server/Services` | Red, datos, mundo, parcelas, sesiones, simulación, clasificaciones, administración |
 | `src/client` | Interfaz, animaciones y controladores |
 | `tests/` | 86 pruebas en Lune con un entorno simulado de Roblox validado contra la API oficial |
-| `tools/` | Verificación completa, simulador de economía, generador de sonidos |
+| `tools/` | Verificación completa, simulador de economía, generador de sonidos, vistas previas de los modelos |
 | `assets/sounds` | 15 efectos de sonido originales listos para subir |
 
 ## Documentación

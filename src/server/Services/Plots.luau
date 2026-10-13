@@ -91,7 +91,7 @@ local function buildPedestal(parent: Instance, plotIndex: number, slot: number, 
 	Build.cylinder({
 		Name = "Ring",
 		Height = 0.2,
-		Diameter = 5.4,
+		Diameter = 4.4,
 		CFrame = base * CFrame.new(0, 1.25, 0),
 		Color = EMPTY_RING,
 		Material = Enum.Material.Neon,
@@ -123,7 +123,24 @@ local function buildMachinePad(parent: Instance, pad: number, plotFrame: CFrame)
 		CanCollide = true,
 		Parent = model,
 	})
-	Build.ring(model, base * CFrame.new(0, 0.62, 0) * CFrame.Angles(0, math.rad(45), 0), 6.1, 0.2, 4, TRIM)
+	-- Neon outline along the pad edges.
+	for _, edge in
+		{
+			{ CFrame.new(0, 0.65, -4.4), Vector3.new(9, 0.15, 0.2) },
+			{ CFrame.new(0, 0.65, 4.4), Vector3.new(9, 0.15, 0.2) },
+			{ CFrame.new(-4.4, 0.65, 0), Vector3.new(0.2, 0.15, 9) },
+			{ CFrame.new(4.4, 0.65, 0), Vector3.new(0.2, 0.15, 9) },
+		}
+	do
+		Build.part({
+			Name = "Trim",
+			Size = edge[2],
+			CFrame = base * edge[1],
+			Color = TRIM,
+			Material = Enum.Material.Neon,
+			Parent = model,
+		})
+	end
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "Prompt"
 	prompt.MaxActivationDistance = 14

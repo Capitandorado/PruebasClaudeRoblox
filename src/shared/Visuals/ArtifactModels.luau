@@ -168,7 +168,7 @@ end
 shapes.Coil = function(model, a)
 	Build.cylinder({ Name = "Core", Height = 3, Diameter = 0.6, Color = a.secondary, Material = N.Neon, Parent = model })
 	for index, y in { -1, -0.35, 0.3, 0.95 } do
-		Build.ring(model, at(0, y, 0) * CFrame.Angles(0, index * 0.4, 0), 0.75, 0.22, 10, a.primary, N.Metal)
+		Build.ring(model, at(0, y, 0) * CFrame.Angles(0, index * 0.4, 0), 0.75, 0.22, 0, a.primary, N.Metal)
 	end
 	Build.cylinder({
 		Name = "Top",
@@ -203,9 +203,9 @@ shapes.Reactor = function(model, a)
 			Parent = model,
 		})
 	end
-	Build.ring(model, at(0, 1.35, 0), 1.05, 0.2, 12, a.primary, N.Metal)
-	Build.ring(model, at(0, -1.35, 0), 1.05, 0.2, 12, a.primary, N.Metal)
-	Build.ring(model, at(0, 0, 0), 1.25, 0.12, 14, a.secondary, N.Neon)
+	Build.ring(model, at(0, 1.35, 0), 1.05, 0.2, 0, a.primary, N.Metal)
+	Build.ring(model, at(0, -1.35, 0), 1.05, 0.2, 0, a.primary, N.Metal)
+	Build.ring(model, at(0, 0, 0), 1.25, 0.12, 0, a.secondary, N.Neon)
 end
 
 shapes.Prism = function(model, a)
@@ -238,7 +238,7 @@ shapes.Prism = function(model, a)
 		Material = N.Neon,
 		Parent = model,
 	})
-	Build.ring(model, at(0, 1.6, 0) * CFrame.Angles(math.rad(20), 0, 0), 0.8, 0.12, 12, a.secondary, N.Neon)
+	Build.ring(model, at(0, 1.6, 0) * CFrame.Angles(math.rad(20), 0, 0), 0.8, 0.12, 0, a.secondary, N.Neon)
 	Build.part({
 		Name = "Base",
 		Size = Vector3.new(2, 0.25, 1.4),
@@ -306,8 +306,8 @@ shapes.GravityWell = function(model, a)
 		Parent = model,
 	})
 	Build.sphere({ Name = "Inner", Diameter = 0.8, Color = a.secondary, Material = N.Neon, Parent = model })
-	Build.ring(model, CFrame.Angles(math.rad(25), 0, 0), 1.3, 0.12, 16, a.secondary, N.Neon)
-	Build.ring(model, CFrame.Angles(math.rad(-30), math.rad(60), 0), 1.55, 0.1, 18, darker(a.secondary, 0.3), N.Neon)
+	Build.ring(model, CFrame.Angles(math.rad(25), 0, 0), 1.3, 0.12, 0, a.secondary, N.Neon)
+	Build.ring(model, CFrame.Angles(math.rad(-30), math.rad(60), 0), 1.55, 0.1, 0, darker(a.secondary, 0.3), N.Neon)
 	for index = 1, 3 do
 		local angle = index / 3 * math.pi * 2
 		Build.sphere({
@@ -372,8 +372,8 @@ shapes.Turbine = function(model, a)
 			Parent = model,
 		})
 	end
-	Build.ring(model, CFrame.Angles(math.pi / 2, 0, 0), 1.7, 0.2, 18, a.primary, N.Metal)
-	Build.ring(model, CFrame.Angles(math.pi / 2, 0, 0), 1.85, 0.08, 18, a.secondary, N.Neon)
+	Build.ring(model, CFrame.Angles(math.pi / 2, 0, 0), 1.7, 0.2, 0, a.primary, N.Metal)
+	Build.ring(model, CFrame.Angles(math.pi / 2, 0, 0), 1.85, 0.08, 0, a.secondary, N.Neon)
 	Build.part({
 		Name = "Stand",
 		Size = Vector3.new(0.4, 1.2, 0.4),
@@ -394,13 +394,13 @@ shapes.Nucleus = function(model, a)
 		Transparency = 0.1,
 		Parent = model,
 	})
-	Build.ring(model, CFrame.Angles(math.rad(70), 0, 0), 1.6, 0.1, 18, a.secondary, N.Neon)
-	Build.ring(model, CFrame.Angles(math.rad(70), math.rad(90), 0), 1.6, 0.1, 18, a.secondary, N.Neon)
+	Build.ring(model, CFrame.Angles(math.rad(70), 0, 0), 1.6, 0.1, 0, a.secondary, N.Neon)
+	Build.ring(model, CFrame.Angles(math.rad(70), math.rad(90), 0), 1.6, 0.1, 0, a.secondary, N.Neon)
 end
 
 shapes.Halo = function(model, a)
 	Build.sphere({ Name = "Body", Diameter = 1.4, Color = a.primary, Material = N.Neon, Parent = model })
-	Build.ring(model, at(0, 1.4, 0), 0.9, 0.18, 16, a.secondary, N.Neon)
+	Build.ring(model, at(0, 1.4, 0), 0.9, 0.18, 0, a.secondary, N.Neon)
 	for _, side in { -1, 1 } do
 		for index = 1, 3 do
 			Build.part({
@@ -455,8 +455,8 @@ shapes.Compass = function(model, a)
 		Material = N.Neon,
 		Parent = model,
 	})
-	Build.ring(model, CFrame.Angles(math.pi / 2, 0, 0), 1.35, 0.12, 18, a.secondary, N.Neon)
-	Build.ring(model, CFrame.Angles(0, 0, math.rad(90)), 1.6, 0.08, 18, darker(a.secondary, 0.2), N.Neon)
+	Build.ring(model, CFrame.Angles(math.pi / 2, 0, 0), 1.35, 0.12, 0, a.secondary, N.Neon)
+	Build.ring(model, CFrame.Angles(0, 0, math.rad(90)), 1.6, 0.08, 0, darker(a.secondary, 0.2), N.Neon)
 end
 
 shapes.Singularity = function(model, a)
@@ -469,15 +469,7 @@ shapes.Singularity = function(model, a)
 	})
 	local colors = { a.secondary, Color3.fromRGB(255, 60, 140), Color3.fromRGB(150, 70, 255) }
 	for index, color in colors do
-		Build.ring(
-			model,
-			CFrame.Angles(math.rad(12), 0, math.rad(8)),
-			1.1 + index * 0.32,
-			0.18,
-			20 + index * 2,
-			color,
-			N.Neon
-		)
+		Build.ring(model, CFrame.Angles(math.rad(12), 0, math.rad(8)), 1.1 + index * 0.32, 0.18, 0, color, N.Neon)
 	end
 	Build.cylinder({
 		Name = "Jet",
@@ -540,6 +532,7 @@ local function applyMutation(model: Model, mutationId: string)
 		return
 	end
 	model:SetAttribute("Mutation", mutationId)
+	local index = 0
 	for _, part in model:GetDescendants() do
 		if not part:IsA("BasePart") or part.Name == "Root" then
 			continue
@@ -553,9 +546,13 @@ local function applyMutation(model: Model, mutationId: string)
 		elseif mutationId == "Neon" then
 			if part.Material ~= N.Glass and part.Transparency < 0.5 then
 				part.Material = N.Neon
+				part.Color = part.Color:Lerp(mutation.color, 0.55)
 			end
 		elseif mutationId == "Rainbow" then
+			-- Static rainbow colours (the client also animates them unless effects are reduced).
+			index += 1
 			part.Material = if part.Material == N.Neon then N.Neon else N.SmoothPlastic
+			part.Color = Color3.fromHSV((index * 0.13) % 1, 0.75, 1)
 			part:AddTag("RainbowMutation")
 		elseif mutationId == "Corrupted" then
 			local h, s, v = part.Color:ToHSV()
@@ -604,13 +601,16 @@ local function addRarityAura(model: Model, artifact: Artifact)
 		return
 	end
 	local order = rarity.order
-	Build.light(root, rarity.color, 0.6 + order * 0.25, 6 + order)
+	-- Dynamic lights are expensive (24 pedestals x 8 plots): only Rare and above get one.
+	if order >= Rarities.order("Rare") then
+		Build.light(root, rarity.color, 0.6 + order * 0.25, 5 + order)
+	end
 	if order >= Rarities.order("Epic") then
 		Build.particles(root, "Sparkles", rarity.color, 2 + order)
 	end
 	if order >= Rarities.order("Mythic") then
 		Build.particles(root, "Glow", rarity.color, 3)
-		Build.ring(model, at(0, -1.9, 0), 1.6, 0.12, 20, rarity.color, N.Neon)
+		Build.ring(model, at(0, -1.9, 0), 1.6, 0.12, 0, rarity.color, N.Neon)
 	end
 end
 

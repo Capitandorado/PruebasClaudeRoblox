@@ -86,7 +86,14 @@ function Build.sphere(props: PartProps & { Diameter: number }): BasePart
 	return Build.part(copy)
 end
 
--- Ring of block segments lying in the local XZ plane of `cframe`.
+-- Segments needed for a ring of `radius` (parts are the main rendering cost, so small
+-- rings use few segments; large world rings may pass their own count).
+function Build.ringSegments(radius: number): number
+	return math.clamp(math.floor(radius * 7 + 0.5), 8, 14)
+end
+
+-- Ring of block segments lying in the local XZ plane of `cframe`. Pass `segments = 0` to
+-- pick the count from the radius.
 function Build.ring(
 	parent: Instance,
 	cframe: CFrame,
@@ -97,6 +104,9 @@ function Build.ring(
 	material: Enum.Material?
 ): { BasePart }
 	local parts = {}
+	if segments <= 0 then
+		segments = Build.ringSegments(radius)
+	end
 	local segmentLength = 2 * math.pi * radius / segments * 1.08
 	for index = 1, segments do
 		local angle = (index - 1) / segments * math.pi * 2
