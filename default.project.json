@@ -1,0 +1,37 @@
+{
+  "name": "VoidFactory",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      },
+      "$properties": {
+        "CameraMaxZoomDistance": 160
+      }
+    },
+    "Workspace": {
+      "$properties": {
+        "FallenPartsDestroyHeight": -400
+      }
+    },
+    "Players": {
+      "$properties": {
+        "CharacterAutoLoads": true,
+        "RespawnTime": 2
+      }
+    }
+  }
+}

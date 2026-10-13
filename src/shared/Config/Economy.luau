@@ -1,0 +1,29 @@
+--!strict
+-- Global economy constants. Tune pacing here; tools/simulate.luau replays a session with them.
+
+local Economy = {}
+
+Economy.StartingEnergy = 0
+Economy.BaseStorage = 40
+-- Stars gained through fusion multiply an artifact's output.
+Economy.StarMultipliers = { 1, 1.75, 3, 5, 8 }
+Economy.MaxStars = #Economy.StarMultipliers
+Economy.FusionCopies = 3
+-- Energy cost to fuse = artifact value * FusionCostFactor * current stars.
+Economy.FusionCostFactor = 2
+-- Sold artifacts give `value * starMultiplier * mutationMult * SellFactor`.
+Economy.SellFactor = 1
+-- Luck can never exceed this multiplier, whatever the stacking.
+Economy.MaxLuck = 25
+-- Duplicate chance cap (Echo Duplicator & co.).
+Economy.MaxDuplicateChance = 0.5
+-- Speed (fabricator / printer interval reduction) is applied as interval / (1 + speed).
+Economy.MaxSpeedBonus = 3
+-- Server simulation tick (seconds). Production is integrated per tick.
+Economy.TickInterval = 1
+-- Box printer can bank at most this many pending boxes while the player is away from the server.
+Economy.PrinterBacklog = 3
+-- Every quest reward is at least this many seconds of the player's current production.
+Economy.QuestRewardSeconds = 90
+
+return Economy
