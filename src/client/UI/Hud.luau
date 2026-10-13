@@ -152,16 +152,18 @@ local function buildMenu(parent: Frame)
 	-- Grid that fills top-to-bottom; on short screens (phones in landscape) it wraps into a
 	-- second column instead of running off the screen.
 	local layout = C.new("UIGridLayout", {
-		CellSize = UDim2.fromOffset(72, 62),
-		CellPadding = UDim2.fromOffset(6, 6),
+		CellSize = UDim2.fromOffset(70, 58),
+		CellPadding = UDim2.fromOffset(5, 5),
 		FillDirection = Enum.FillDirection.Vertical,
+		HorizontalAlignment = Enum.HorizontalAlignment.Left,
 		VerticalAlignment = Enum.VerticalAlignment.Center,
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		Parent = menu,
 	})
 	local function fit()
-		local available = App.designViewport().Y - 90
-		layout.FillDirectionMaxCells = math.clamp(math.floor(available / 68), 4, 12)
+		-- Height left for the menu: screen minus Roblox's top bar and a small margin.
+		local available = App.designViewport().Y - 58 / App.scale() - 24
+		layout.FillDirectionMaxCells = math.clamp(math.floor((available + 5) / 63), 4, 12)
 	end
 	fit()
 	local camera = workspace.CurrentCamera
@@ -173,7 +175,7 @@ local function buildMenu(parent: Frame)
 			Name = id .. "Button",
 			Text = "",
 			AutoButtonColor = false,
-			Size = UDim2.fromOffset(72, 62),
+			Size = UDim2.fromOffset(70, 58),
 			BackgroundColor3 = Colors.Panel,
 			BackgroundTransparency = 0.1,
 			LayoutOrder = order,
@@ -184,8 +186,8 @@ local function buildMenu(parent: Frame)
 			Text = icon,
 			TextSize = 26,
 			TextXAlignment = Enum.TextXAlignment.Center,
-			Size = UDim2.new(1, 0, 0, 36),
-			Position = UDim2.fromOffset(0, 4),
+			Size = UDim2.new(1, 0, 0, 34),
+			Position = UDim2.fromOffset(0, 3),
 			Parent = button,
 		})
 		C.text({
@@ -194,7 +196,7 @@ local function buildMenu(parent: Frame)
 			TextColor3 = Colors.TextDim,
 			TextXAlignment = Enum.TextXAlignment.Center,
 			Size = UDim2.new(1, 0, 0, 16),
-			Position = UDim2.fromOffset(0, 40),
+			Position = UDim2.fromOffset(0, 37),
 			Parent = button,
 		})
 		local scale = C.new("UIScale", { Parent = button })
@@ -449,7 +451,7 @@ local function refreshTip()
 		return
 	end
 	local text = tipFor(profile)
-	refs.tip.Visible = text ~= nil
+	refs.tip.Visible = text ~= nil and App.currentWindow() == nil
 	refs.tipText.Text = text or ""
 end
 
@@ -585,7 +587,8 @@ local function refreshTop()
 	end
 	local production = Store.production()
 	refs.eps.Text = "+" .. Format.number(production.total) .. "/s"
-	refs.shardsPill.Visible = profile.rebirths > 0 or profile.shards > 0
+	refs.shardsPill.Visible = (profile.rebirths > 0 or profile.shards > 0)
+		and not refs.shardsPill:GetAttribute("HiddenByWindow")
 	refs.shards.Text = string.format("💠 %s shards  •  ♻ %d", Format.number(profile.shards), profile.rebirths)
 	-- Active factory effects in one readable line.
 	local parts = {}
@@ -608,7 +611,7 @@ local function refreshTop()
 	if collection > 1e-9 then
 		table.insert(parts, "📖 +" .. pct(collection))
 	end
-	refs.effectsPill.Visible = #parts > 0
+	refs.effectsPill.Visible = #parts > 0 and not refs.effectsPill:GetAttribute("HiddenByWindow")
 	refs.effects.Text = table.concat(parts, "   ")
 end
 
@@ -617,7 +620,7 @@ local function refreshEvent()
 	local now = Store.now()
 	local pill = refs.eventPill
 	local event = mods.active[1]
-	pill.Visible = true
+	pill.Visible = not pill:GetAttribute("HiddenByWindow")
 	if event then
 		refs.event.Text = string.format(
 			"🎉 %s  •  %s  •  %s",
@@ -654,8 +657,29 @@ function Hud.start()
 	Box.Busy:Connect(function()
 		Hud.refreshBoxPanel()
 	end)
+	-- While a window is open only the Energy counter and the quest tracker stay visible, so
+	-- windows never overlap the box panel or the info pills.
+	App.WindowChanged:Connect(function(name)
+		local root = App.layers.Hud
+		local hidden = name ~= nil
+		for _, element in { root:FindFirstChild("BoxPanel"), root:FindFirstChild("Tip") } do
+			if element then
+				(element :: any).Visible = not hidden and (element.Name ~= "Tip" or refs.tipText.Text ~= "")
+			end
+		end
+		local bar = root:FindFirstChild("TopBar")
+		if bar then
+			for _, pill in bar:GetChildren() do
+				if pill:IsA("GuiObject") and pill.Name ~= "EnergyPill" then
+					pill:SetAttribute("HiddenByWindow", hidden)
+				end
+			end
+		end
+		refreshTop()
+		refreshEvent()
+	end)
 	App.VisitChanged:Connect(function(name)
-		refs.visitPill.Visible = name ~= nil
+		refs.visitPill.Visible = name ~= nil and not refs.visitPill:GetAttribute("HiddenByWindow")
 		refs.visit.Text = if name then "👀 Visiting " .. name .. "'s factory  •  🏠 Home to return" else ""
 	end)
 
@@ -695,7 +719,7 @@ function Hud.start()
 			panelClock = 0
 			Hud.refreshBoxPanel()
 			local surging = Store.isSurging()
-			refs.surgePanel.Visible = surging
+			refs.surgePanel.Visible = surging and not refs.surgePanel:GetAttribute("HiddenByWindow")
 			if surging then
 				refs.surge.Text =
 					string.format("🌀 VOID SURGE  •  %s", Format.duration(Store.runtime.surgeEndsAt - Store.now()))

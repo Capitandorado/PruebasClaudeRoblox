@@ -47,7 +47,12 @@ local function computeScale(viewport: Vector2): number
 	return math.clamp(scale, 0.55, 1.3)
 end
 
--- Viewport size in design units (what the UIScale-scaled layout actually has available).
+-- Current UI scale and the viewport size in design units.
+function App.scale(): number
+	local camera = workspace.CurrentCamera
+	return computeScale(if camera then camera.ViewportSize else Theme.DesignSize)
+end
+
 function App.designViewport(): Vector2
 	local camera = workspace.CurrentCamera
 	local viewport = if camera then camera.ViewportSize else Theme.DesignSize

@@ -221,7 +221,7 @@ local function showCard(result: any)
 	local card = C.panel({
 		Name = "RevealCard",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.3),
+		Position = UDim2.fromScale(0.5, 0.43),
 		Size = UDim2.fromOffset(380, 150),
 		Parent = overlay,
 	})

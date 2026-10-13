@@ -74,9 +74,34 @@ D.GuiObject = {
 		return rbx().Color3.fromRGB(255, 255, 255)
 	end,
 }
-D.TextLabel = { Text = "Label" }
-D.TextButton = { Text = "Button" }
-D.TextBox = { Text = "TextBox" }
+-- Roblox centres text by default (the enums' first items are Left/Top, so set them explicitly).
+local function centreDefaults(text)
+	return {
+		Text = text,
+		TextXAlignment = function()
+			return rbx().Enum.TextXAlignment.Center
+		end,
+		TextYAlignment = function()
+			return rbx().Enum.TextYAlignment.Center
+		end,
+		BorderSizePixel = 1,
+	}
+end
+-- Layouts start top-left and sort by LayoutOrder in Roblox.
+D.UIGridStyleLayout = {
+	HorizontalAlignment = function()
+		return rbx().Enum.HorizontalAlignment.Left
+	end,
+	VerticalAlignment = function()
+		return rbx().Enum.VerticalAlignment.Top
+	end,
+	SortOrder = function()
+		return rbx().Enum.SortOrder.LayoutOrder
+	end,
+}
+D.TextLabel = centreDefaults("Label")
+D.TextButton = centreDefaults("Button")
+D.TextBox = centreDefaults("TextBox")
 D.Sound = { TimeLength = 1 }
 D.ScreenGui = {
 	ZIndexBehavior = function()

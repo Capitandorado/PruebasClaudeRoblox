@@ -96,7 +96,7 @@ return {
 					accent = machine.color,
 					layoutOrder = order,
 				})
-				button.Parent.Size = UDim2.new(1, -8, 0, 86)
+				button.Parent.Size = UDim2.new(1, -8, 0, 98)
 				if not state then
 					if profile.rebirths < machine.rebirthRequired then
 						C.setButton(button, "Rebirth " .. machine.rebirthRequired .. " needed", false)

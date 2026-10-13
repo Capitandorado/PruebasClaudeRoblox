@@ -70,8 +70,9 @@ return {
 					Name = "Text",
 					Text = string.format(def.text, targetText),
 					FontFace = Theme.Fonts.Bold,
-					TextSize = 17,
-					Size = UDim2.new(1, -150, 0, 24),
+					TextSize = 16,
+					TextTruncate = Enum.TextTruncate.AtEnd,
+					Size = UDim2.new(1, -150, 0, 22),
 					Parent = card,
 				})
 				C.text({

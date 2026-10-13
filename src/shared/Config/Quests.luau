@@ -54,7 +54,7 @@ Quests.List = {
 		targetPerRebirth = 0,
 		rewardBase = 250,
 		rewardScale = 3,
-		text = "Discover %d new artifact(s) or mutation variant(s)",
+		text = "Discover %d new artifact or variant",
 	},
 	{
 		id = "find_rare",

@@ -156,24 +156,24 @@ return {
 			Parent = content,
 		})
 		C.padding(8).Parent = detail
-		local _, showPreview = Widgets.preview(detail, UDim2.new(1, 0, 0, 120))
+		local _, showPreview = Widgets.preview(detail, UDim2.new(1, 0, 0, 86))
 		local detailName = C.text({
 			Name = "Name",
 			Text = "",
 			FontFace = Theme.Fonts.Bold,
-			TextSize = 18,
-			Size = UDim2.new(1, 0, 0, 24),
-			Position = UDim2.fromOffset(0, 124),
+			TextSize = 17,
+			Size = UDim2.new(1, 0, 0, 22),
+			Position = UDim2.fromOffset(0, 90),
 			Parent = detail,
 		})
 		local detailBody = C.text({
 			Name = "Body",
 			Text = "Select an artifact.",
-			TextSize = 13,
+			TextSize = 12,
 			TextColor3 = Colors.TextDim,
 			TextYAlignment = Enum.TextYAlignment.Top,
-			Size = UDim2.new(1, 0, 1, -230),
-			Position = UDim2.fromOffset(0, 150),
+			Size = UDim2.new(1, 0, 1, -194),
+			Position = UDim2.fromOffset(0, 114),
 			Parent = detail,
 		})
 		local buttons = C.new("Frame", {
@@ -300,7 +300,9 @@ return {
 			local canFuse, reason = Fusion.canFuse(profile, selectedKey :: string)
 			local fuseText = "Fuse 3 → ★"
 			if reason == "NeedsFusionChamber" then
-				fuseText = "Needs Fusion Chamber"
+				fuseText = "Fuse 🔒"
+				table.insert(lines, "Fusion needs the Fusion Chamber.")
+				detailBody.Text = table.concat(lines, "\n")
 			elseif reason == "MaxStars" then
 				fuseText = "Max stars"
 			elseif item.stars < Economy.MaxStars then

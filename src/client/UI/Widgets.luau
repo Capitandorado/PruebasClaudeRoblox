@@ -92,16 +92,26 @@ function Widgets.itemCard(
 		Parent = card,
 	})
 	if count and count > 1 then
+		local badge = C.new("Frame", {
+			Name = "CountBadge",
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, 4, 0, -6),
+			Size = UDim2.fromOffset(34, 18),
+			BackgroundColor3 = color:Lerp(Colors.Panel, 0.35),
+			ZIndex = 3,
+			Children = { C.corner(9) },
+			Parent = card,
+		})
 		C.text({
 			Name = "Count",
 			Text = "x" .. count,
-			TextSize = 13,
+			TextSize = 12,
 			FontFace = Theme.Fonts.Bold,
 			TextColor3 = Colors.Text,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			Size = UDim2.new(0, 40, 0, 16),
-			Position = UDim2.new(1, -46, 0, 8),
-			Parent = card,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Size = UDim2.fromScale(1, 1),
+			ZIndex = 3,
+			Parent = badge,
 		})
 	end
 	if opts.onClick then
@@ -215,7 +225,7 @@ function Widgets.row(
 		TextSize = 13,
 		TextColor3 = Colors.TextDim,
 		TextYAlignment = Enum.TextYAlignment.Top,
-		Size = UDim2.new(1, -190, 0, 40),
+		Size = UDim2.new(1, -190, 1, -34),
 		Position = UDim2.fromOffset(22, 30),
 		Parent = row,
 	})

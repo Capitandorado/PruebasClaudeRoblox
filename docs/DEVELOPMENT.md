@@ -51,3 +51,13 @@ lune run tools/part_audit.luau                           # piezas/luces/partícu
 ```
 
 El render es una aproximación (trazado de rayos simple con numpy), no el motor de Roblox.
+
+También la interfaz: `export_ui.luau` ejecuta el cliente real en el emulador para varias
+escenas (HUD en PC y móvil, cada ventana, la revelación de una caja) y `render_ui.py` aplica
+las reglas de maquetación de Roblox (UDim2, AnchorPoint, UIPadding, UIListLayout,
+UIGridLayout, UIScale, recorte) para dibujar capturas aproximadas:
+
+```
+lune run tools/preview/export_ui.luau build/ui.json
+python3 tools/preview/render_ui.py build/ui.json build/ui
+```
