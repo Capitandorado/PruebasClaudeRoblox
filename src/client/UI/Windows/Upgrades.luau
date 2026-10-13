@@ -91,12 +91,39 @@ return {
 			luckLine.Size = UDim2.new(1, -8, 0, 24)
 		end
 
+		local function signature(): string
+			local profile = Store.profile
+			if not profile then
+				return ""
+			end
+			local parts = { tostring(State.inventoryCount(profile)), tostring(State.capacity(profile)) }
+			for _, upgrade in Upgrades.List do
+				local cost = State.upgradeCost(profile, upgrade.id)
+				table.insert(
+					parts,
+					string.format(
+						"%s:%d:%s",
+						upgrade.id,
+						profile.upgrades[upgrade.id] or 0,
+						tostring(cost ~= nil and profile.energy >= cost)
+					)
+				)
+			end
+			table.insert(parts, string.format("%.2f", State.luck(profile, "starter_fabricator", Store.production())))
+			return table.concat(parts, "|")
+		end
+		local guardedRefresh = C.guarded(signature, refresh)
+
 		local watching = nil
 		return {
 			frame = content,
-			refresh = refresh,
+			refresh = function()
+				guardedRefresh(true)
+			end,
 			onOpen = function()
-				watching = Store.watch({ "energy", "upgrades", "inventory", "perks", "placed" }, refresh)
+				watching = Store.watch({ "energy", "upgrades", "inventory", "perks", "placed" }, function()
+					guardedRefresh()
+				end)
 			end,
 			onClose = function()
 				if watching then

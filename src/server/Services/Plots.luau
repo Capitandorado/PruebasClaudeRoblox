@@ -653,7 +653,10 @@ end
 
 function Plots.start()
 	local function onCharacter(player: Player, character: Model)
-		task.defer(function()
+		task.spawn(function()
+			-- The root part can arrive slightly after CharacterAdded on a real server.
+			character:WaitForChild("HumanoidRootPart", 5)
+			task.wait(0.1)
 			local index = sessionPlot(player)
 			if index and character.Parent then
 				character:PivotTo(Plots.spawnCFrame(index))

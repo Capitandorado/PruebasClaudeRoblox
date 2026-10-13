@@ -24,13 +24,27 @@
     },
     "Workspace": {
       "$properties": {
-        "FallenPartsDestroyHeight": -400
+        "FallenPartsDestroyHeight": -400,
+        "StreamingEnabled": false
       }
     },
     "Players": {
       "$properties": {
         "CharacterAutoLoads": true,
         "RespawnTime": 2
+      }
+    },
+    "Lighting": {
+      "$properties": {
+        "Technology": "Future",
+        "ClockTime": 0,
+        "Brightness": 1.5,
+        "GlobalShadows": true
+      }
+    },
+    "SoundService": {
+      "$properties": {
+        "RespectFilteringEnabled": true
       }
     }
   }

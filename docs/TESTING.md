@@ -1,0 +1,50 @@
+# Qué está probado (y qué no)
+
+## Cómo se prueba
+
+No hay acceso a Roblox Studio en el entorno donde se desarrolló el juego, así que las pruebas
+corren en **Lune** con un entorno simulado de Roblox (`tests/mock`):
+
+- Cada `Instance` se valida contra la **base de datos oficial de la API de Roblox**
+  (generada del API Dump): usar una propiedad, método o evento que no existe, o asignar un
+  tipo incorrecto, produce el mismo error que en el motor.
+- Servidor y cada cliente tienen su **propia máquina virtual** (módulos y globales
+  separados); los `RemoteEvent`/`RemoteFunction` copian los argumentos como la red real
+  (las tablas mixtas pierden datos, las funciones se convierten en nil).
+- El tiempo es simulado (`task.wait`, `Heartbeat`, `os.time`), lo que permite probar horas de
+  juego en segundos.
+- El DataStore simulado serializa en JSON, rechaza valores no serializables, y permite
+  **inyectar fallos**, compartir datos entre varios servidores y simular la caída de uno.
+
+Se ejecutan los **scripts reales** del juego: el servidor arranca, los jugadores entran, la
+interfaz se construye y las pruebas pulsan sus botones.
+
+## Cobertura (86 pruebas)
+
+| Área | Ejemplos |
+| --- | --- |
+| Lógica | Probabilidades normalizadas, prueba estadística de 200 000 tiradas, efectos, mutaciones, fusión, rebirth, misiones, saneado de datos corruptos |
+| Servidor | Arranque, abrir/colocar/producir, compras, rechazo de 13 tipos de peticiones malformadas, límite de frecuencia |
+| Cliente | HUD, botón de abrir con animación, inventario → colocar, las 9 ventanas, tienda, modo automático |
+| Guardado | Reentrar, bloqueo entre servidores, caída de un servidor, fallos transitorios y persistentes, perfil inválido, cierre del servidor, Studio sin API |
+| Efectos y eventos | Etiquetas y enlaces, vista previa, eventos que cambian la producción, catálogo de temporada, máquinas animadas |
+| Seguridad y multijugador | Fuzzing de todas las acciones, peticiones en paralelo, cliente manipulado, 8 jugadores independientes, servidor lleno, visitas, clasificación global |
+| Pulido | Escala y menú en pantalla de móvil, consejos de inicio, ventanas que no se reconstruyen sin cambios |
+
+Además: comprobación de tipos con luau-lsp y las definiciones oficiales de Roblox, lint con
+Selene, y el `.rbxl` compilado se abre y cada script se compila con el compilador de Luau.
+
+## Lo que NO se ha podido comprobar
+
+- **Ejecutar el juego dentro de Roblox Studio o de un servidor real.** El emulador reproduce la
+  API, pero no el motor: física, colisiones, cámara, renderizado, iluminación, partículas,
+  rendimiento real en móviles, latencia de red y el aspecto visual final.
+- **El DataStore real de Roblox** (cuotas, latencias y errores reales) y las clasificaciones
+  globales en producción.
+- **Que los sonidos subidos suenen bien en el juego** (se generaron y validaron como WAV).
+- En el emulador todos los clientes comparten un único DataModel (en Roblox cada cliente tiene
+  su copia), así que el estado visual por cliente —por ejemplo, prompts desactivados para los
+  visitantes— se comprueba a través de la lógica de cada controlador, no del objeto compartido.
+
+Por eso la primera prueba recomendada es abrir `build/VoidFactory.rbxl` en Studio y seguir
+[PUBLISHING.md](PUBLISHING.md).

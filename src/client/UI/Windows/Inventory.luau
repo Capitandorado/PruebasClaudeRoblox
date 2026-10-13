@@ -402,15 +402,21 @@ return {
 				pickForSlot = if type(args) == "table" then args.pickForSlot else nil
 				pickBanner.Visible = pickForSlot ~= nil
 				pickBanner.Text = if pickForSlot then "Choose an artifact for pedestal #" .. pickForSlot else ""
-				watching = Store.watch({ "inventory", "settings", "machines", "energy" }, function()
+				local refreshAll = C.debounce(function()
 					refreshGrid()
 					refreshDetail()
-				end)
+				end, 0.4)
+				watching = {
+					Store.watch({ "inventory", "settings", "machines" }, refreshAll),
+					Store.watch({ "energy" }, refreshDetail),
+				}
 			end,
 			onClose = function()
 				pickForSlot = nil
 				if watching then
-					watching:Disconnect()
+					for _, connection in watching do
+						connection:Disconnect()
+					end
 					watching = nil
 				end
 			end,

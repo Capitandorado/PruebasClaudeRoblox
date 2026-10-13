@@ -15,17 +15,18 @@ lune run tools/simulate.luau 240 casual 5   # juega 30 s cada 3 min
 | --- | --- | --- |
 | Box Printer | 1m47s | 6m00s |
 | Primera ampliación | 3m44s | 9m00s |
-| Overclocker | 5m45s | 12m00s |
-| Fusion Chamber | 7m35s | 15m00s |
-| Lucky Fabricator | 8m45s | 18m00s |
-| Primer Legendary | 9m15s | 45m10s |
-| Primer Mythic | 42m07s | 72m08s |
-| **Primer rebirth** | **73m24s** | **93m00s** |
-| Void Forge | 81m10s | 102m07s |
-| Segundo rebirth | 131m53s | 228m (1/5 partidas) |
+| Overclocker | 5m29s | 12m00s |
+| Fusion Chamber | 6m36s | 15m00s |
+| Lucky Fabricator | 7m00s | 18m00s |
+| Primer Legendary | 7m54s | 18m25s |
+| Cuarta ampliación | 25m16s | 54m00s |
+| **Primer rebirth** | **54m29s** | **93m00s** |
+| Void Forge | 61m28s | 99m22s |
+| Primer Mythic | 62m40s | 69m04s |
+| Segundo rebirth | 132m34s | 195m (1/5 partidas) |
 
-Void y Secret son metas a largo plazo (horas de Void Forge); sus probabilidades se muestran
-tal cual en *Collection → Odds*.
+Divine, Celestial, Void y Secret son metas a largo plazo (horas tras el primer rebirth); sus
+probabilidades se muestran tal cual en *Collection → Odds*.
 
 ## Decisiones de diseño que salieron del simulador
 
@@ -34,6 +35,8 @@ tal cual en *Collection → Odds*.
   objetos o Energy, y la recompensa equivale a 30 s de producción (con un mínimo).
 - La velocidad acumulable hacía las máquinas 4 veces más rápidas sin límite inferior: ahora el
   máximo es x2,5 con intervalos mínimos de 2 s (fabricadora) y 3 s (impresora).
+- El bonus de colección original (+2 % por artefacto) casi duplicaba la velocidad del juego al
+  acumularse con todo lo demás; se redujo a +1 % por artefacto y +0,25 % por variante.
 - Las cajas de pago cuestan lo mayor entre un precio base y X segundos de la **mejor producción de
   la partida** (no la actual, para que quitar artefactos no abarate las cajas). Así siguen siendo
   una decisión real en cualquier momento de la partida.

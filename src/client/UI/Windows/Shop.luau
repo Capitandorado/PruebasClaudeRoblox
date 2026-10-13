@@ -207,22 +207,55 @@ return {
 			end
 		end
 
+		-- Only rebuild when something visible changed (levels, prices, affordability).
+		local function signature(): string
+			local profile = Store.profile
+			if not profile then
+				return ""
+			end
+			local parts = { currentTab, tostring(profile.rebirths), tostring(profile.expansion) }
+			for _, machine in Machines.List do
+				local state = profile.machines[machine.id]
+				local cost = if state then MachineStats.upgradeCost(machine.id, state.level) else machine.cost
+				table.insert(
+					parts,
+					string.format(
+						"%s:%d:%s",
+						machine.id,
+						if state then state.level else 0,
+						tostring(cost ~= nil and profile.energy >= cost)
+					)
+				)
+				if state and machine.kind == "fabricator" then
+					table.insert(parts, Format.number(State.boxCost(profile, machine.id)))
+				end
+			end
+			local expansionCost = State.expansionCost(profile)
+			table.insert(parts, tostring(expansionCost ~= nil and profile.energy >= expansionCost))
+			return table.concat(parts, "|")
+		end
+		local guardedRefresh = C.guarded(signature, refresh)
+
 		local selectTab = Widgets.tabs(content, { "Machines", "Expansion" }, function(name)
 			currentTab = name
-			refresh()
+			guardedRefresh(true)
 		end)
 		selectTab(currentTab)
 
 		local watching = nil
 		return {
 			frame = content,
-			refresh = refresh,
+			refresh = function()
+				guardedRefresh(true)
+			end,
 			onOpen = function(args: any)
 				if type(args) == "table" and args.tab then
 					currentTab = args.tab
 					selectTab(currentTab)
 				end
-				watching = Store.watch({ "energy", "machines", "expansion", "rebirths" }, refresh)
+				watching = Store.watch({ "energy", "machines", "expansion", "rebirths", "runBestEps" }, function()
+					guardedRefresh()
+				end)
 			end,
 			onClose = function()
 				if watching then

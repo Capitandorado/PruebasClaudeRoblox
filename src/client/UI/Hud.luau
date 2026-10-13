@@ -145,13 +145,29 @@ local function buildMenu(parent: Frame)
 		Name = "Menu",
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.new(0, 10, 0.5, 0),
-		Size = UDim2.fromOffset(76, 600),
+		Size = UDim2.fromOffset(150, 700),
 		BackgroundTransparency = 1,
 		Parent = parent,
 	})
-	local layout = C.list(Enum.FillDirection.Vertical, 6)
-	layout.VerticalAlignment = Enum.VerticalAlignment.Center
-	layout.Parent = menu
+	-- Grid that fills top-to-bottom; on short screens (phones in landscape) it wraps into a
+	-- second column instead of running off the screen.
+	local layout = C.new("UIGridLayout", {
+		CellSize = UDim2.fromOffset(72, 62),
+		CellPadding = UDim2.fromOffset(6, 6),
+		FillDirection = Enum.FillDirection.Vertical,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = menu,
+	})
+	local function fit()
+		local available = App.designViewport().Y - 90
+		layout.FillDirectionMaxCells = math.clamp(math.floor(available / 68), 4, 12)
+	end
+	fit()
+	local camera = workspace.CurrentCamera
+	if camera then
+		camera:GetPropertyChangedSignal("ViewportSize"):Connect(fit)
+	end
 	local function addButton(id: string, icon: string, label: string, order: number, onClick: () -> ())
 		local button = C.new("TextButton", {
 			Name = id .. "Button",
@@ -381,6 +397,62 @@ local function buildQuestTracker(parent: Frame)
 	end)
 end
 
+local function buildTip(parent: Frame)
+	local tip = C.panel({
+		Name = "Tip",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -218),
+		Size = UDim2.fromOffset(520, 46),
+		BackgroundColor3 = Color3.fromRGB(20, 40, 70),
+		Visible = false,
+		Parent = parent,
+	})
+	refs.tipText = C.text({
+		Name = "Text",
+		Text = "",
+		TextSize = 16,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Size = UDim2.new(1, -20, 1, 0),
+		Position = UDim2.fromOffset(10, 0),
+		Parent = tip,
+	})
+	refs.tip = tip
+end
+
+-- First-session guidance: one short hint at a time until the core loop is learned.
+local function tipFor(profile: any): string?
+	if profile.rebirths > 0 then
+		return nil
+	end
+	if profile.stats.boxesOpened == 0 then
+		return "👋 Welcome! Press OPEN BOX to fabricate your first artifact."
+	end
+	if next(profile.placed) == nil then
+		return "Place it: tap a pedestal on your plot, or open 🎒 Items → Auto-place best."
+	end
+	local printer = Machines.get("box_printer")
+	if printer and not profile.machines.box_printer then
+		if profile.energy >= printer.cost then
+			return "You can afford the Box Printer! Open 🏭 Machines to buy it."
+		end
+		return "Artifacts produce ⚡ every second. Save ⚡" .. Format.number(printer.cost) .. " for the Box Printer."
+	end
+	if profile.expansion == 0 then
+		return "Tip: some artifacts boost their neighbours. Expand your plot in 🏭 Machines → Expansion."
+	end
+	return nil
+end
+
+local function refreshTip()
+	local profile = Store.profile
+	if not profile or not refs.tip then
+		return
+	end
+	local text = tipFor(profile)
+	refs.tip.Visible = text ~= nil
+	refs.tipText.Text = text or ""
+end
+
 local function buildPlacementBanner(parent: Frame)
 	local banner = C.panel({
 		Name = "PlacementBanner",
@@ -566,6 +638,7 @@ function Hud.start()
 	buildMenu(root)
 	buildBoxPanel(root)
 	buildQuestTracker(root)
+	buildTip(root)
 	buildPlacementBanner(root)
 
 	Store.watch({ "machines" }, function()
@@ -575,6 +648,7 @@ function Hud.start()
 		refreshTop()
 		refreshQuest()
 		refreshBadges()
+		refreshTip()
 		Hud.refreshBoxPanel()
 	end)
 	Box.Busy:Connect(function()

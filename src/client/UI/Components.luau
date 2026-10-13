@@ -309,6 +309,37 @@ function C.toggle(label: string, initial: boolean, onChange: (boolean) -> ()): (
 	return row, set
 end
 
+-- Returns a function that runs `fn` at most once per `interval` seconds (trailing call kept).
+function C.debounce(fn: () -> (), interval: number): () -> ()
+	local scheduled = false
+	local last = -math.huge
+	return function()
+		if scheduled then
+			return
+		end
+		local wait = math.max(0, interval - (os.clock() - last))
+		scheduled = true
+		task.delay(wait, function()
+			scheduled = false
+			last = os.clock()
+			fn()
+		end)
+	end
+end
+
+-- Runs `render` only when `signature()` changed since the last render (avoids rebuilding a
+-- window every second when nothing visible changed).
+function C.guarded(signature: () -> string, render: () -> ()): (force: boolean?) -> ()
+	local last: string? = nil
+	return function(force: boolean?)
+		local current = signature()
+		if force or current ~= last then
+			last = current
+			render()
+		end
+	end
+end
+
 function C.clear(container: Instance, keepLayouts: boolean?)
 	for _, child in container:GetChildren() do
 		if

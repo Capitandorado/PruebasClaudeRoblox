@@ -47,6 +47,13 @@ local function computeScale(viewport: Vector2): number
 	return math.clamp(scale, 0.55, 1.3)
 end
 
+-- Viewport size in design units (what the UIScale-scaled layout actually has available).
+function App.designViewport(): Vector2
+	local camera = workspace.CurrentCamera
+	local viewport = if camera then camera.ViewportSize else Theme.DesignSize
+	return viewport / computeScale(viewport)
+end
+
 function App.isNarrow(): boolean
 	local camera = workspace.CurrentCamera
 	return camera ~= nil and camera.ViewportSize.X < 900

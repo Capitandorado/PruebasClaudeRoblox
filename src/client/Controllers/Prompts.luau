@@ -35,6 +35,11 @@ local function isOwn(prompt: Instance): boolean
 end
 
 local function enforce(prompt: Instance)
+	-- Until the client knows its plot it cannot tell whose prompt this is: leave it alone
+	-- (triggering is still checked here and on the server), and enforce on Store.Ready.
+	if Store.plot == 0 then
+		return
+	end
 	if prompt:IsA("ProximityPrompt") and prompt.Enabled and not isOwn(prompt) then
 		prompt.Enabled = false
 	end
