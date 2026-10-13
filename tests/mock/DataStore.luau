@@ -93,7 +93,10 @@ local function request(store, op, key)
 	table.insert(backend.requests, { op = op, store = store.name, key = key, time = world.scheduler.clock })
 	world.scheduler:wait(backend.latency)
 	if backend.disabled then
-		error("502: API Services rejected request with error. Error code: 0 Reason: Studio access to APIs is not allowed.", 3)
+		error(
+			"502: API Services rejected request with error. Error code: 0 Reason: Studio access to APIs is not allowed.",
+			3
+		)
 	end
 	if backend.failNext > 0 then
 		backend.failNext -= 1

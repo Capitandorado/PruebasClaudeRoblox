@@ -113,7 +113,8 @@ local function makeDateTime(scheduler)
 	local DateTimeClass = {}
 	DateTimeClass.__index = DateTimeClass
 	local function fromMillis(ms)
-		local dt = setmetatable({ UnixTimestampMillis = math.floor(ms), UnixTimestamp = math.floor(ms / 1000) }, DateTimeClass)
+		local dt =
+			setmetatable({ UnixTimestampMillis = math.floor(ms), UnixTimestamp = math.floor(ms / 1000) }, DateTimeClass)
 		typeTags[dt] = "DateTime"
 		return dt
 	end
@@ -125,7 +126,15 @@ local function makeDateTime(scheduler)
 	end
 	function DateTimeClass:ToUniversalTime()
 		local t = os.date("!*t", self.UnixTimestamp)
-		return { Year = t.year, Month = t.month, Day = t.day, Hour = t.hour, Minute = t.min, Second = t.sec, Millisecond = 0 }
+		return {
+			Year = t.year,
+			Month = t.month,
+			Day = t.day,
+			Hour = t.hour,
+			Minute = t.min,
+			Second = t.sec,
+			Millisecond = 0,
+		}
 	end
 	local DateTime = {}
 	function DateTime.now()
@@ -204,7 +213,10 @@ local function netCopy(runtime, value, seen)
 				if length > 0 then
 					dropped = true
 				else
-					runtime:log("netwarn", "Numeric dictionary key " .. tostring(key) .. " converted to string by the network")
+					runtime:log(
+						"netwarn",
+						"Numeric dictionary key " .. tostring(key) .. " converted to string by the network"
+					)
 					copy[tostring(key)] = netCopy(runtime, inner, seen)
 				end
 			else
@@ -247,7 +259,8 @@ local SERVICE_NAMES = {
 
 function Runtime.new(options)
 	options = options or {}
-	if not sharedScheduler or options.freshScheduler then
+	-- Each runtime gets its own clock unless it must run side by side with another server.
+	if not sharedScheduler or not options.shareScheduler then
 		sharedScheduler = Scheduler.new()
 		world.scheduler = sharedScheduler
 	end
@@ -298,9 +311,10 @@ function Runtime.new(options)
 	self.serverContext = { kind = "server", name = "server:" .. self.jobId, runtime = self, vm = self.serverVM }
 
 	self.scheduler.listeners = self.scheduler.listeners or {}
-	table.insert(self.scheduler.listeners, function(dt)
+	self.stepListener = function(dt)
 		self:onStep(dt)
-	end)
+	end
+	table.insert(self.scheduler.listeners, self.stepListener)
 	self.scheduler.onStep = function(dt)
 		for _, listener in self.scheduler.listeners do
 			listener(dt)
@@ -410,31 +424,33 @@ function Runtime:newVM(name)
 			return Instance.new(className, parent)
 		end,
 	})
-	for _, name in {
-		"Vector3",
-		"Vector2",
-		"CFrame",
-		"Color3",
-		"BrickColor",
-		"UDim",
-		"UDim2",
-		"NumberSequence",
-		"NumberSequenceKeypoint",
-		"ColorSequence",
-		"ColorSequenceKeypoint",
-		"NumberRange",
-		"Rect",
-		"Ray",
-		"Region3",
-		"Font",
-		"Faces",
-		"Axes",
-		"PhysicalProperties",
-		"Enum",
-		"Vector3int16",
-		"Vector2int16",
-		"Content",
-	} do
+	for _, name in
+		{
+			"Vector3",
+			"Vector2",
+			"CFrame",
+			"Color3",
+			"BrickColor",
+			"UDim",
+			"UDim2",
+			"NumberSequence",
+			"NumberSequenceKeypoint",
+			"ColorSequence",
+			"ColorSequenceKeypoint",
+			"NumberRange",
+			"Rect",
+			"Ray",
+			"Region3",
+			"Font",
+			"Faces",
+			"Axes",
+			"PhysicalProperties",
+			"Enum",
+			"Vector3int16",
+			"Vector2int16",
+			"Content",
+		}
+	do
 		env[name] = roblox[name]
 	end
 	env.CFrame = makeCFrame()
@@ -917,6 +933,21 @@ function Runtime:shutdown()
 	return remaining == 0
 end
 
+-- Simulates a server crash: every thread of this server (and its clients) stops forever,
+-- no BindToClose, no saves.
+function Runtime:crash()
+	self.serverContext.dead = true
+	for _, context in self.clients do
+		context.dead = true
+	end
+	local listeners = self.scheduler.listeners
+	for index = #listeners, 1, -1 do
+		if listeners[index] == self.stepListener then
+			table.remove(listeners, index)
+		end
+	end
+end
+
 -- Test helpers --------------------------------------------------------------------------
 
 function Runtime:step(dt)
@@ -944,15 +975,18 @@ end
 -- keeping its upvalues. Anything the VM does not define falls back to the test's globals.
 local function bindEnv(fn, vm)
 	local original = getfenv(fn)
-	setfenv(fn, setmetatable({}, {
-		__index = function(_, key)
-			local value = vm.env[key]
-			if value ~= nil then
-				return value
-			end
-			return original[key]
-		end,
-	}))
+	setfenv(
+		fn,
+		setmetatable({}, {
+			__index = function(_, key)
+				local value = vm.env[key]
+				if value ~= nil then
+					return value
+				end
+				return original[key]
+			end,
+		})
+	)
 	return fn
 end
 
@@ -966,9 +1000,12 @@ function Runtime:asClient(player, fn, timeout)
 		results = table.pack(pcall(fn))
 		done = true
 	end)
-	assert(self:runUntil(function()
-		return done
-	end, timeout or 30), "client call timed out")
+	assert(
+		self:runUntil(function()
+			return done
+		end, timeout or 30),
+		"client call timed out"
+	)
 	if not results[1] then
 		error(results[2], 2)
 	end
@@ -982,9 +1019,12 @@ function Runtime:asServer(fn, timeout)
 		results = table.pack(pcall(fn))
 		done = true
 	end)
-	assert(self:runUntil(function()
-		return done
-	end, timeout or 30), "server call timed out")
+	assert(
+		self:runUntil(function()
+			return done
+		end, timeout or 30),
+		"server call timed out"
+	)
 	if not results[1] then
 		error(results[2], 2)
 	end

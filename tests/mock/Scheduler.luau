@@ -92,8 +92,10 @@ end
 -- Yields the running thread for `seconds` of simulated time. Returns elapsed time.
 function Scheduler:wait(seconds)
 	local thread = coroutine.running()
-	if not coroutine.isyieldable() then
-		error("task.wait called from a non-yieldable context", 2)
+	if not coroutine.isyieldable() or self.contexts[thread] == nil then
+		-- Yielding a thread the scheduler does not own (e.g. the test's main thread) would
+		-- silently end the Lune process, so fail loudly instead.
+		error("Mock: yielding outside a simulated thread (wrap the call in runtime:asServer/asClient)", 2)
 	end
 	local start = self.clock
 	table.insert(self.timed, {

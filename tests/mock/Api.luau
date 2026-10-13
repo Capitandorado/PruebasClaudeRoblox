@@ -15,7 +15,7 @@ local function load()
 	end
 	local here = debug.info(1, "s")
 	local dir = string.match(here, "^(.*)[/\\][^/\\]+$") or "."
-	dir = string.gsub(dir, "^%[string \"(.*)\"%]$", "%1")
+	dir = string.gsub(dir, '^%[string "(.*)"%]$', "%1")
 	local candidates = { dir .. "/api.json.gz", "tests/mock/api.json.gz" }
 	for _, path in candidates do
 		if fs.isFile(path) then

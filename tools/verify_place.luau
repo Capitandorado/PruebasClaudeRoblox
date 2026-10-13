@@ -48,5 +48,14 @@ for _, fullPath in required do
 	end
 end
 
-print(string.format("%s: %d Scripts, %d LocalScripts, %d ModuleScripts, %d problems", path, counts.Script, counts.LocalScript, counts.ModuleScript, failures))
+print(
+	string.format(
+		"%s: %d Scripts, %d LocalScripts, %d ModuleScripts, %d problems",
+		path,
+		counts.Script,
+		counts.LocalScript,
+		counts.ModuleScript,
+		failures
+	)
+)
 process.exit(if failures > 0 then 1 else 0)

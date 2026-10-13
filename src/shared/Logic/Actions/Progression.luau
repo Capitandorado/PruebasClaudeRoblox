@@ -2,6 +2,8 @@
 -- Rebirth, rebirth perks and quests.
 
 local Shared = script.Parent.Parent.Parent
+local Artifacts = require(Shared.Config.Artifacts)
+local Mutations = require(Shared.Config.Mutations)
 local Machines = require(Shared.Config.Machines)
 local Rebirth = require(Shared.Config.Rebirth)
 local Quests = require(Shared.Config.Quests)
@@ -34,6 +36,7 @@ function Progression.rebirth(profile: ProfileData, now: number): (boolean, any)
 	local headStart = Rebirth.PerksById.headstart
 	profile.energy = if headStartLevel > 0 then headStart.perLevel * 4 ^ (headStartLevel - 1) else 0
 	profile.runEnergy = 0
+	profile.runBestEps = 0
 	profile.upgrades = {}
 	profile.expansion = 0
 	profile.machines = { [Machines.StarterId] = Profile.newMachineState(Machines.StarterId, now) }
@@ -94,6 +97,34 @@ function Progression.questReward(profile: ProfileData, questId: string, eps: num
 	return math.floor(math.max(base, eps * Economy.QuestRewardSeconds * quest.rewardScale))
 end
 
+-- Discovery quests disappear once every artifact and mutation variant has been found.
+function Progression.remainingDiscoveries(profile: ProfileData): number
+	local total = #Artifacts.List * (1 + #Mutations.List)
+	local found = 0
+	for artifactId, entry in profile.collection do
+		if Artifacts.get(artifactId) then
+			found += 1
+			for mutationId in entry.muts do
+				if Mutations.get(mutationId) then
+					found += 1
+				end
+			end
+		end
+	end
+	return total - found
+end
+
+function Progression.questAvailable(profile: ProfileData, questId: string): boolean
+	local quest = Quests.ById[questId]
+	if not quest then
+		return false
+	end
+	if quest.stat == "discoveries" then
+		return Progression.remainingDiscoveries(profile) > 0
+	end
+	return true
+end
+
 -- Removes unknown quests and tops the board up to Quests.ActiveCount. Returns true if changed.
 function Progression.ensureQuests(profile: ProfileData, rng: Roller.Rng): boolean
 	local changed = false
@@ -110,7 +141,7 @@ function Progression.ensureQuests(profile: ProfileData, rng: Roller.Rng): boolea
 	while #active < Quests.ActiveCount do
 		local pool = {}
 		for _, quest in Quests.List do
-			if not used[quest.id] then
+			if not used[quest.id] and Progression.questAvailable(profile, quest.id) then
 				table.insert(pool, quest)
 			end
 		end

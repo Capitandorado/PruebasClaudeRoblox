@@ -41,7 +41,13 @@ for _, file in files do
 		local elapsed = os.clock() - caseStart
 		if ok then
 			passed += 1
-			print(stdio.color("green") .. "  PASS " .. stdio.color("reset") .. fullName .. string.format(" (%.2fs)", elapsed))
+			print(
+				stdio.color("green")
+					.. "  PASS "
+					.. stdio.color("reset")
+					.. fullName
+					.. string.format(" (%.2fs)", elapsed)
+			)
 		else
 			failed += 1
 			table.insert(failures, { name = fullName, err = err })
@@ -51,7 +57,15 @@ for _, file in files do
 end
 
 for _, failure in failures do
-	print("\n" .. stdio.color("red") .. "FAILED: " .. failure.name .. stdio.color("reset") .. "\n" .. tostring(failure.err))
+	print(
+		"\n"
+			.. stdio.color("red")
+			.. "FAILED: "
+			.. failure.name
+			.. stdio.color("reset")
+			.. "\n"
+			.. tostring(failure.err)
+	)
 end
 print(string.format("\n%d passed, %d failed (%.1fs)", passed, failed, os.clock() - started))
 process.exit(if failed > 0 then 1 else 0)

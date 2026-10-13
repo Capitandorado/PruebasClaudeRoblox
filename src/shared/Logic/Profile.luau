@@ -39,6 +39,7 @@ export type Profile = {
 	settings: { sfx: boolean, reducedEffects: boolean, autoSell: { [string]: boolean } },
 	bestRarity: number,
 	bestEps: number,
+	runBestEps: number,
 	created: number,
 	playTime: number,
 	orphaned: { [string]: number },
@@ -58,6 +59,7 @@ Profile.StatNames = {
 	"fusions",
 	"upgradesBought",
 	"rebirths",
+	"discoveries",
 }
 
 Profile.AutoSellRarities = { "Common", "Uncommon", "Rare" }
@@ -96,6 +98,7 @@ function Profile.new(now: number): Profile
 		settings = { sfx = true, reducedEffects = false, autoSell = autoSell },
 		bestRarity = 0,
 		bestEps = 0,
+		runBestEps = 0,
 		created = now,
 		playTime = 0,
 		orphaned = {},
@@ -156,6 +159,7 @@ function Profile.reconcile(raw: any, now: number): Profile
 	profile.expansion = integer(data.expansion, 0, 0, Plot.MaxExpansionLevel)
 	profile.bestRarity = integer(data.bestRarity, 0, 0, #Rarities.List)
 	profile.bestEps = number(data.bestEps, 0, 0)
+	profile.runBestEps = number(data.runBestEps, 0, 0)
 	profile.created = number(data.created, now)
 	profile.playTime = number(data.playTime, 0, 0)
 

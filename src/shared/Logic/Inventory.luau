@@ -75,6 +75,9 @@ function Inventory.discover(profile: Profile, item: Items.Item, now: number): (b
 	if item.stars > entry.stars then
 		entry.stars = item.stars
 	end
+	if newArtifact or newVariant then
+		profile.stats.discoveries += 1
+	end
 	local artifact = Artifacts.get(item.id)
 	if artifact then
 		local order = Rarities.order(artifact.rarity)

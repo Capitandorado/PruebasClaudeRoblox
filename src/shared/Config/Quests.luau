@@ -1,7 +1,8 @@
 --!strict
 -- Quest pool. Three quests are active at a time; claiming one draws a new one.
 -- `target` is scaled by the player's rebirths (targetPerRebirth) so quests stay meaningful.
--- Reward = max(rewardBase, production * Economy.QuestRewardSeconds * rewardScale).
+-- Reward = max(rewardBase * (1 + rebirths), production * Economy.QuestRewardSeconds * rewardScale).
+-- Only use stats that cannot be farmed for free (every stat here costs time, items or Energy).
 
 export type Quest = {
 	id: string,
@@ -47,13 +48,13 @@ Quests.List = {
 		text = "Produce %s Energy",
 	},
 	{
-		id = "place_artifacts",
-		stat = "artifactsPlaced",
-		target = 5,
-		targetPerRebirth = 3,
-		rewardBase = 150,
-		rewardScale = 1,
-		text = "Place %d artifacts on pedestals",
+		id = "discover",
+		stat = "discoveries",
+		target = 1,
+		targetPerRebirth = 0,
+		rewardBase = 250,
+		rewardScale = 3,
+		text = "Discover %d new artifact(s) or mutation variant(s)",
 	},
 	{
 		id = "find_rare",

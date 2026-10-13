@@ -87,7 +87,10 @@ Instance.getFullName = getFullName
 
 local function memberError(inst, key, level)
 	local data = internals[inst]
-	error(string.format('%s is not a valid member of %s "%s"', tostring(key), data.className, getFullName(inst)), level or 3)
+	error(
+		string.format('%s is not a valid member of %s "%s"', tostring(key), data.className, getFullName(inst)),
+		level or 3
+	)
 end
 
 -- Signals -----------------------------------------------------------------------------
@@ -231,7 +234,10 @@ local function enumFrom(typeName, value, key)
 	local enumType = rbx.Enum[typeName]
 	if typeof(value) == "EnumItem" then
 		if not string.find(tostring(value), "Enum." .. typeName .. ".", 1, true) then
-			error(string.format("Unable to assign property %s. Enum.%s expected, got %s", key, typeName, tostring(value)), 4)
+			error(
+				string.format("Unable to assign property %s. Enum.%s expected, got %s", key, typeName, tostring(value)),
+				4
+			)
 		end
 		return value
 	elseif type(value) == "string" then
@@ -239,7 +245,10 @@ local function enumFrom(typeName, value, key)
 			return enumType[value]
 		end)
 		if not ok or item == nil then
-			error(string.format("Unable to assign property %s. Invalid value \"%s\" for enum %s", key, value, typeName), 4)
+			error(
+				string.format('Unable to assign property %s. Invalid value "%s" for enum %s', key, value, typeName),
+				4
+			)
 		end
 		return item
 	elseif type(value) == "number" then
@@ -794,7 +803,7 @@ Methods.Instance = {
 				if not done and rt then
 					rt:log(
 						"warn",
-						string.format('Infinite yield possible on \'%s:WaitForChild("%s")\'', getFullName(self), name)
+						string.format("Infinite yield possible on '%s:WaitForChild(\"%s\")'", getFullName(self), name)
 					)
 				end
 			end)
@@ -869,7 +878,7 @@ Methods.Instance = {
 	GetPropertyChangedSignal = function(self, key)
 		local data = internals[self]
 		if not data.info.props[key] and key ~= "Parent" and key ~= "Name" then
-			error(string.format('%s is not a valid property name.', tostring(key)), 2)
+			error(string.format("%s is not a valid property name.", tostring(key)), 2)
 		end
 		local signal = data.propSignals[key]
 		if not signal then

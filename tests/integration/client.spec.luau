@@ -101,7 +101,9 @@ return function(t)
 		local player = Fixture.join(rt, { userId = 304, noClient = false })
 		rt:run(1, 0.1)
 		local ui = gui(rt, player)
-		for _, name in { "Inventory", "Collection", "Shop", "Upgrades", "Quests", "Rebirth", "Leaderboard", "Settings", "Admin" } do
+		for _, name in
+			{ "Inventory", "Collection", "Shop", "Upgrades", "Quests", "Rebirth", "Leaderboard", "Settings", "Admin" }
+		do
 			rt:click(rt:findDescendant(ui, name .. "Button"))
 			rt:run(0.4, 0.1)
 			local window = rt:findDescendant(ui, "Window_" .. name)

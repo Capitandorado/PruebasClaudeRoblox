@@ -15,6 +15,8 @@ return function(t)
 	local Plot = req("Config.Plot")
 	local Economy = req("Config.Economy")
 	local Quests = req("Config.Quests")
+	local Rebirth = req("Config.Rebirth")
+	local MachineStats = req("Logic.MachineStats")
 	local Items = req("Logic.Items")
 	local Roller = req("Logic.Roller")
 	local Effects = req("Logic.Effects")
@@ -92,7 +94,20 @@ return function(t)
 			t.eq(item.mut, "Gold")
 			t.eq(item.stars, 2)
 			t.eq(Items.keyOf(item), key)
-			for _, bad in { "scrap_cube||0", "scrap_cube||6", "scrap_cube||01", "nope||1", "scrap_cube|Plaid|1", "scrap_cube|1", 5, nil, "scrap_cube||1.5", string.rep("x", 200) } do
+			for _, bad in
+				{
+					"scrap_cube||0",
+					"scrap_cube||6",
+					"scrap_cube||01",
+					"nope||1",
+					"scrap_cube|Plaid|1",
+					"scrap_cube|1",
+					5,
+					nil,
+					"scrap_cube||1.5",
+					string.rep("x", 200),
+				}
+			do
 				t.eq(Items.parse(bad), nil, "rejects " .. tostring(bad))
 			end
 		end)
@@ -136,7 +151,10 @@ return function(t)
 			end
 			local base = Roller.getRarityOdds("basic", 1)
 			local lucky = Roller.getRarityOdds("basic", 3)
-			t.ok(chanceOf(lucky, "Legendary") > chanceOf(base, "Legendary") * 2.2, "legendary boosted (x3 weight, renormalised)")
+			t.ok(
+				chanceOf(lucky, "Legendary") > chanceOf(base, "Legendary") * 2.2,
+				"legendary boosted (x3 weight, renormalised)"
+			)
 			t.ok(chanceOf(lucky, "Common") < chanceOf(base, "Common"), "common reduced")
 			local capped = Roller.getRarityOdds("basic", Economy.MaxLuck)
 			local over = Roller.getRarityOdds("basic", Economy.MaxLuck * 100)
@@ -224,7 +242,12 @@ return function(t)
 		t.test("reactor boosts everything, gravity well boosts neighbours only", function()
 			-- Slots 1 and 2 are neighbours, slot 3 is two columns away from slot 1.
 			local result = Production.compute({
-				placed = place({ [1] = "gravity_well||1", [2] = "scrap_cube||1", [3] = "glow_shard||1", [8] = "reactor_core||1" }),
+				placed = place({
+					[1] = "gravity_well||1",
+					[2] = "scrap_cube||1",
+					[3] = "glow_shard||1",
+					[8] = "reactor_core||1",
+				}),
 			})
 			local mult = 1.10
 			t.near(result.perSlot[2], 1 * 1.35 * mult, 1e-9, "neighbour of gravity well")
@@ -241,6 +264,24 @@ return function(t)
 			t.near(result.perSlot[2], 2 * (1 - 0.15), 1e-9)
 		end)
 
+		t.test("speed bonuses respect the cap and the interval floors", function()
+			local profile = newProfile()
+			profile.upgrades.speed = 10
+			profile.machines.starter_fabricator.level = 10
+			profile.machines.box_printer = Profile.newMachineState("box_printer", NOW)
+			profile.machines.box_printer.level = 10
+			for slot = 1, 6 do
+				profile.placed[tostring(slot)] = "chrono_turbine||1"
+			end
+			local production = State.computeProduction(profile)
+			t.ok(State.speedFactor(profile, production) <= 1 + Economy.MaxSpeedBonus + 1e-9, "speed capped")
+			t.ok(
+				State.chargeInterval(profile, "starter_fabricator", production) >= Economy.MinChargeInterval,
+				"charge floor"
+			)
+			t.ok(State.printerInterval(profile, production) >= Economy.MinPrinterInterval, "printer floor")
+		end)
+
 		t.test("luck, duplicate and speed effects are aggregated and capped", function()
 			local placed = {}
 			for slot = 1, 12 do
@@ -250,8 +291,8 @@ return function(t)
 			placed[14] = Items.parse("flux_coil||1")
 			local result = Production.compute({ placed = placed })
 			t.eq(result.duplicateChance, Economy.MaxDuplicateChance)
-			t.near(result.luckBonus, 0.15, 1e-12)
-			t.near(result.speedBonus, 0.08, 1e-12)
+			t.near(result.luckBonus, Artifacts.get("prism_lens").effects[1].amount, 1e-12)
+			t.near(result.speedBonus, Artifacts.get("flux_coil").effects[1].amount, 1e-12)
 		end)
 
 		t.test("singularity scales with distinct effect types", function()
@@ -286,15 +327,24 @@ return function(t)
 			local cap = State.chargeCap(profile, "starter_fabricator")
 			local prod = production(profile)
 			for _ = 1, cap do
-				local ok, result = BoxActions.open(profile, "starter_fabricator", { now = NOW, rng = Fixture.rng(1), production = prod })
+				local ok, result = BoxActions.open(
+					profile,
+					"starter_fabricator",
+					{ now = NOW, rng = Fixture.rng(1), production = prod }
+				)
 				t.ok(ok, tostring(result))
 				t.eq(result.paid, 0)
 			end
-			local ok, err = BoxActions.open(profile, "starter_fabricator", { now = NOW, rng = Fixture.rng(1), production = prod })
+			local ok, err =
+				BoxActions.open(profile, "starter_fabricator", { now = NOW, rng = Fixture.rng(1), production = prod })
 			t.eq(ok, false)
 			t.eq(err, "NoCharges")
 			local interval = State.chargeInterval(profile, "starter_fabricator", prod)
-			ok = BoxActions.open(profile, "starter_fabricator", { now = NOW + interval * 1.01, rng = Fixture.rng(2), production = prod })
+			ok = BoxActions.open(
+				profile,
+				"starter_fabricator",
+				{ now = NOW + interval * 1.01, rng = Fixture.rng(2), production = prod }
+			)
 			t.ok(ok, "one charge after one interval")
 			t.eq(profile.stats.boxesOpened, cap + 1)
 			t.eq(State.inventoryCount(profile), cap + 1)
@@ -304,34 +354,70 @@ return function(t)
 			local profile = newProfile()
 			profile.machines.lucky_fabricator = Profile.newMachineState("lucky_fabricator", NOW)
 			local prod = production(profile)
-			local ok, err = BoxActions.open(profile, "lucky_fabricator", { now = NOW, rng = Fixture.rng(3), production = prod })
+			local ok, err =
+				BoxActions.open(profile, "lucky_fabricator", { now = NOW, rng = Fixture.rng(3), production = prod })
 			t.eq(ok, false)
 			t.eq(err, "NotEnoughEnergy")
-			profile.energy = 1000
-			local ok2, result = BoxActions.open(profile, "lucky_fabricator", { now = NOW, rng = Fixture.rng(3), production = prod })
+			local price = State.boxCost(profile, "lucky_fabricator")
+			t.ok(price > 0, "lucky boxes have a price")
+			profile.energy = price + 100
+			local ok2, result =
+				BoxActions.open(profile, "lucky_fabricator", { now = NOW, rng = Fixture.rng(3), production = prod })
 			t.ok(ok2)
-			t.eq(result.paid, 150)
-			t.eq(profile.energy, 850)
+			t.eq(result.paid, price)
+			t.ok(profile.energy >= 100, "paid exactly the price (plus any auto-sale)")
+			-- The price follows the best production of the run, never the current one.
+			profile.runBestEps = 1e6
+			t.ok(State.boxCost(profile, "lucky_fabricator") > price, "price scales with best production")
 		end)
 
 		t.test("rejects machines that are not owned or cannot open boxes", function()
 			local profile = newProfile()
 			local prod = production(profile)
-			t.eq(select(2, BoxActions.open(profile, "lucky_fabricator", { now = NOW, rng = Fixture.rng(1), production = prod })), "NotOwned")
-			t.eq(select(2, BoxActions.open(profile, "overclocker", { now = NOW, rng = Fixture.rng(1), production = prod })), "InvalidMachine")
-			t.eq(select(2, BoxActions.open(profile, "hax", { now = NOW, rng = Fixture.rng(1), production = prod })), "InvalidMachine")
+			t.eq(
+				select(
+					2,
+					BoxActions.open(profile, "lucky_fabricator", { now = NOW, rng = Fixture.rng(1), production = prod })
+				),
+				"NotOwned"
+			)
+			t.eq(
+				select(
+					2,
+					BoxActions.open(profile, "overclocker", { now = NOW, rng = Fixture.rng(1), production = prod })
+				),
+				"InvalidMachine"
+			)
+			t.eq(
+				select(2, BoxActions.open(profile, "hax", { now = NOW, rng = Fixture.rng(1), production = prod })),
+				"InvalidMachine"
+			)
 		end)
 
 		t.test("full inventory blocks opening; duplicates and auto-sell work", function()
 			local profile = newProfile()
 			profile.inventory["scrap_cube||1"] = State.capacity(profile)
 			local prod = production(profile)
-			t.eq(select(2, BoxActions.open(profile, "starter_fabricator", { now = NOW, rng = Fixture.rng(1), production = prod })), "InventoryFull")
+			t.eq(
+				select(
+					2,
+					BoxActions.open(
+						profile,
+						"starter_fabricator",
+						{ now = NOW, rng = Fixture.rng(1), production = prod }
+					)
+				),
+				"InventoryFull"
+			)
 
 			local fresh = newProfile()
 			local dupProduction = table.clone(production(fresh))
 			dupProduction.duplicateChance = 1
-			local ok, result = BoxActions.open(fresh, "starter_fabricator", { now = NOW, rng = Fixture.sequence({ 0.01, 0.99, 0.0 }), production = dupProduction })
+			local ok, result = BoxActions.open(
+				fresh,
+				"starter_fabricator",
+				{ now = NOW, rng = Fixture.sequence({ 0.01, 0.99, 0.0 }), production = dupProduction }
+			)
 			t.ok(ok)
 			t.eq(result.duplicated, true)
 			t.eq(#result.grants, 2)
@@ -341,10 +427,18 @@ return function(t)
 			local seller = newProfile()
 			seller.settings.autoSell.Common = true
 			local prodSeller = production(seller)
-			local _, first = BoxActions.open(seller, "starter_fabricator", { now = NOW, rng = Fixture.sequence({ 0.01, 0.99, 0.99 }), production = prodSeller })
+			local _, first = BoxActions.open(
+				seller,
+				"starter_fabricator",
+				{ now = NOW, rng = Fixture.sequence({ 0.01, 0.99, 0.99 }), production = prodSeller }
+			)
 			t.eq(first.grants[1].sold, false, "first copy kept")
 			t.eq(first.grants[1].newArtifact, true)
-			local _, second = BoxActions.open(seller, "starter_fabricator", { now = NOW, rng = Fixture.sequence({ 0.01, 0.99, 0.99 }), production = prodSeller })
+			local _, second = BoxActions.open(
+				seller,
+				"starter_fabricator",
+				{ now = NOW, rng = Fixture.sequence({ 0.01, 0.99, 0.99 }), production = prodSeller }
+			)
 			t.eq(second.grants[1].sold, true, "repeat auto-sold")
 			t.eq(seller.energy, 4)
 		end)
@@ -402,16 +496,17 @@ return function(t)
 		t.test("machines, upgrades and expansions charge the right price", function()
 			local profile = newProfile()
 			t.eq(select(2, Shop.buyMachine(profile, "box_printer", NOW)), "NotEnoughEnergy")
-			profile.energy = 100000
+			profile.energy = 1e7
+			local printerCost = Machines.get("box_printer").cost
 			t.ok(Shop.buyMachine(profile, "box_printer", NOW))
-			t.eq(profile.energy, 100000 - 350)
+			t.eq(profile.energy, 1e7 - printerCost)
 			t.eq(select(2, Shop.buyMachine(profile, "box_printer", NOW)), "AlreadyOwned")
 			t.eq(select(2, Shop.buyMachine(profile, "void_forge", NOW)), "NeedsRebirth")
 			local before = profile.energy
 			local ok, result = Shop.upgradeMachine(profile, "box_printer")
 			t.ok(ok)
-			t.eq(result.cost, 400)
-			t.eq(profile.energy, before - 400)
+			t.eq(result.cost, MachineStats.upgradeCost("box_printer", 1))
+			t.eq(profile.energy, before - result.cost)
 			t.eq(profile.machines.box_printer.level, 2)
 			local luckCost = State.upgradeCost(profile, "luck")
 			t.ok(Shop.buyUpgrade(profile, "luck"))
@@ -468,7 +563,7 @@ return function(t)
 	t.describe("progression", function()
 		t.test("rebirth resets the run but keeps artifacts and collection", function()
 			local profile = newProfile()
-			profile.energy = 2e6
+			profile.energy = Rebirth.cost(0)
 			profile.expansion = 3
 			profile.machines.box_printer = Profile.newMachineState("box_printer", NOW)
 			profile.upgrades.luck = 4
@@ -488,7 +583,7 @@ return function(t)
 			t.eq(profile.inventory["reactor_core||1"], 1, "artifact returned")
 			t.eq(profile.placed["1"], "scrap_cube||1", "unlocked pedestal kept")
 			t.ok(profile.collection.reactor_core ~= nil, "collection kept")
-			t.ok(Progression.rebirthCost(profile) > 1e6, "next rebirth costs more")
+			t.ok(Progression.rebirthCost(profile) > Rebirth.cost(0), "next rebirth costs more")
 			t.eq(select(2, Progression.rebirth(profile, NOW)), "NotEnoughEnergy")
 		end)
 
@@ -505,9 +600,60 @@ return function(t)
 		t.test("head start perk gives energy after rebirth", function()
 			local profile = newProfile()
 			profile.perks.headstart = 2
-			profile.energy = 1e6
+			profile.energy = Rebirth.cost(0)
 			t.ok(Progression.rebirth(profile, NOW))
 			t.eq(profile.energy, 2500 * 4)
+		end)
+
+		t.test("quests only track stats that cost time, items or Energy", function()
+			local allowed = {
+				boxesOpened = true,
+				energyEarned = true,
+				foundRare = true,
+				foundEpic = true,
+				itemsSold = true,
+				fusions = true,
+				upgradesBought = true,
+				discoveries = true,
+			}
+			for _, quest in Quests.List do
+				t.ok(allowed[quest.stat], quest.id .. " uses a non-farmable stat (" .. quest.stat .. ")")
+			end
+			-- Placing and removing the same artifact never advances a quest.
+			local profile = newProfile()
+			profile.inventory["scrap_cube||1"] = 1
+			Progression.ensureQuests(profile, Fixture.rng(1))
+			local before = {}
+			for index, questState in profile.quests.active do
+				before[index] = Progression.questProgress(profile, questState)
+			end
+			for _ = 1, 50 do
+				Factory.place(profile, 1, "scrap_cube||1")
+				Factory.remove(profile, 1)
+			end
+			for index, questState in profile.quests.active do
+				t.eq(Progression.questProgress(profile, questState), before[index], "no progress from place spam")
+			end
+		end)
+
+		t.test("discovery quests disappear once the collection is complete", function()
+			local profile = newProfile()
+			for _, artifact in Artifacts.List do
+				local muts = {}
+				for _, mutation in Mutations.List do
+					muts[mutation.id] = true
+				end
+				profile.collection[artifact.id] = { count = 1, muts = muts, stars = 1, first = NOW }
+			end
+			t.eq(Progression.remainingDiscoveries(profile), 0)
+			t.eq(Progression.questAvailable(profile, "discover"), false)
+			for _ = 1, 20 do
+				profile.quests.active = {}
+				Progression.ensureQuests(profile, Fixture.rng(_))
+				for _, questState in profile.quests.active do
+					t.ok(questState.id ~= "discover", "discover quest not offered")
+				end
+			end
 		end)
 
 		t.test("quests fill the board, track progress and pay out", function()
@@ -542,7 +688,12 @@ return function(t)
 				version = 1,
 				energy = 0 / 0,
 				rebirths = 3.7,
-				inventory = { ["scrap_cube||1"] = 4, ["removed_thing||1"] = 2, ["scrap_cube||1|x"] = 1, ["glow_shard||1"] = -5 },
+				inventory = {
+					["scrap_cube||1"] = 4,
+					["removed_thing||1"] = 2,
+					["scrap_cube||1|x"] = 1,
+					["glow_shard||1"] = -5,
+				},
 				placed = { ["1"] = "glow_shard||1", ["20"] = "scrap_cube||1", ["2"] = "ghost||1" },
 				machines = { starter_fabricator = { level = 99, charges = 3, chargeAt = NOW }, fake = { level = 1 } },
 				upgrades = { luck = 2, hack = 50 },
@@ -595,11 +746,13 @@ return function(t)
 			local runtime = Simulation.newRuntime()
 			local rng = Fixture.rng(2)
 			local printed = 0
-			for second = 0, 61 do
+			local interval = State.printerInterval(profile, State.computeProduction(profile))
+			local seconds = math.floor(interval * 3) + 1
+			for second = 0, seconds do
 				local events = Simulation.tick(profile, runtime, 1, NOW + second, rng)
 				printed += #events.printed
 			end
-			t.eq(printed, 3, "20s interval over ~61s")
+			t.eq(printed, 3, string.format("%.1fs interval over %ds", interval, seconds))
 			t.eq(State.inventoryCount(profile), 3)
 		end)
 

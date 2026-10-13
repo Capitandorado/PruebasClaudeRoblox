@@ -36,9 +36,11 @@ local function machineStats(profile: any, machine: Machines.Machine, level: numb
 			)
 			table.insert(parts, "holds " .. MachineStats.getStat(machine.id, "chargeCap", level))
 		end
-		local cost = MachineStats.getStat(machine.id, "boxCost", level)
+		local cost = if profile.machines[machine.id]
+			then State.boxCost(profile, machine.id)
+			else MachineStats.getStat(machine.id, "boxCost", level)
 		if cost > 0 then
-			table.insert(parts, "⚡" .. Format.number(cost) .. "/box")
+			table.insert(parts, "⚡" .. Format.number(cost) .. "/box (grows with your factory)")
 		end
 		table.insert(parts, string.format("luck x%.2f", MachineStats.getStat(machine.id, "luck", level)))
 		return table.concat(parts, " • ")

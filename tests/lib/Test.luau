@@ -52,7 +52,15 @@ function Test.newContext()
 	end
 	function t.eq(actual, expected, message)
 		if actual ~= expected then
-			error(string.format("%sexpected %s, got %s", if message then message .. ": " else "", describe(expected), describe(actual)), 2)
+			error(
+				string.format(
+					"%sexpected %s, got %s",
+					if message then message .. ": " else "",
+					describe(expected),
+					describe(actual)
+				),
+				2
+			)
 		end
 	end
 	function t.deepEq(actual, expected, message)
@@ -62,7 +70,16 @@ function Test.newContext()
 	end
 	function t.near(actual, expected, tolerance, message)
 		if type(actual) ~= "number" or math.abs(actual - expected) > tolerance then
-			error(string.format("%sexpected %s ± %s, got %s", if message then message .. ": " else "", tostring(expected), tostring(tolerance), describe(actual)), 2)
+			error(
+				string.format(
+					"%sexpected %s ± %s, got %s",
+					if message then message .. ": " else "",
+					tostring(expected),
+					tostring(tolerance),
+					describe(actual)
+				),
+				2
+			)
 		end
 	end
 	function t.errors(fn, pattern, message)

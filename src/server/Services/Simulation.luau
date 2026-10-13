@@ -17,7 +17,7 @@ local Game = require(Services.Game)
 
 local SimulationService = {}
 
-local TICK_SECTIONS = { "energy", "lifetimeEnergy", "runEnergy", "stats", "bestEps", "playTime" }
+local TICK_SECTIONS = { "energy", "lifetimeEnergy", "runEnergy", "stats", "bestEps", "runBestEps", "playTime" }
 local PRINT_SECTIONS = {
 	"energy",
 	"lifetimeEnergy",
@@ -27,6 +27,7 @@ local PRINT_SECTIONS = {
 	"collection",
 	"bestRarity",
 	"bestEps",
+	"runBestEps",
 	"playTime",
 }
 

@@ -121,6 +121,9 @@ function Simulation.tick(profile: Profile, runtime: Runtime, dt: number, now: nu
 	if production.total > profile.bestEps then
 		profile.bestEps = production.total
 	end
+	if production.total > profile.runBestEps then
+		profile.runBestEps = production.total
+	end
 	profile.playTime += dt
 
 	-- Box Printer.

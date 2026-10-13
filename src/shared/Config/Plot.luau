@@ -19,11 +19,11 @@ Plot.PlotRadius = 150
 -- Index 1 is the free starting layout (expansion level 0).
 Plot.Expansions = {
 	{ columns = 3, rows = 2, cost = 0 },
-	{ columns = 3, rows = 3, cost = 800 },
-	{ columns = 4, rows = 3, cost = 7500 },
-	{ columns = 4, rows = 4, cost = 45000 },
-	{ columns = 5, rows = 4, cost = 250000 },
-	{ columns = 6, rows = 4, cost = 1500000 },
+	{ columns = 3, rows = 3, cost = 8000 },
+	{ columns = 4, rows = 3, cost = 60000 },
+	{ columns = 4, rows = 4, cost = 400000 },
+	{ columns = 5, rows = 4, cost = 2500000 },
+	{ columns = 6, rows = 4, cost = 15000000 },
 } :: { Expansion }
 
 Plot.MaxExpansionLevel = #Plot.Expansions - 1

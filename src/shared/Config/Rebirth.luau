@@ -15,8 +15,8 @@ export type Perk = {
 
 local Rebirth = {}
 
-Rebirth.BaseCost = 1000000
-Rebirth.CostGrowth = 6
+Rebirth.BaseCost = 1.5e7
+Rebirth.CostGrowth = 10
 Rebirth.ProductionPerRebirth = 0.5
 Rebirth.BaseShards = 2
 Rebirth.ShardsPerRebirth = 1

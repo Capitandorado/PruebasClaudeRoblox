@@ -78,9 +78,11 @@ D.TextLabel = { Text = "Label" }
 D.TextButton = { Text = "Button" }
 D.TextBox = { Text = "TextBox" }
 D.Sound = { TimeLength = 1 }
-D.ScreenGui = { ZIndexBehavior = function()
-	return rbx().Enum.ZIndexBehavior.Sibling
-end }
+D.ScreenGui = {
+	ZIndexBehavior = function()
+		return rbx().Enum.ZIndexBehavior.Sibling
+	end,
+}
 
 local function cframeOf(data)
 	return data.props.CFrame or rbx().CFrame.new()
@@ -124,7 +126,8 @@ S.BasePart = {
 	end,
 	Size = function(_, data, value)
 		expectType("Size", value, "Vector3")
-		data.props.Size = rbx().Vector3.new(math.max(0.001, value.X), math.max(0.001, value.Y), math.max(0.001, value.Z))
+		data.props.Size =
+			rbx().Vector3.new(math.max(0.001, value.X), math.max(0.001, value.Y), math.max(0.001, value.Z))
 	end,
 	BrickColor = function(_, data, value)
 		expectType("BrickColor", value, "BrickColor")
@@ -289,10 +292,7 @@ local function absoluteSize(inst)
 		parentSize = absoluteSize(parent)
 	end
 	local size = inst.Size
-	return rbx().Vector2.new(
-		size.X.Scale * parentSize.X + size.X.Offset,
-		size.Y.Scale * parentSize.Y + size.Y.Offset
-	)
+	return rbx().Vector2.new(size.X.Scale * parentSize.X + size.X.Offset, size.Y.Scale * parentSize.Y + size.Y.Offset)
 end
 
 local function absolutePosition(inst)
@@ -645,7 +645,14 @@ M.TweenService = {
 		for key, value in goals do
 			local prop = targetData.info.props[key]
 			if not prop then
-				error(string.format("TweenService:Create property named '%s' cannot be tweened due to type mismatch (property is a 'nil', but given type is '%s')", key, typeof(value)), 2)
+				error(
+					string.format(
+						"TweenService:Create property named '%s' cannot be tweened due to type mismatch (property is a 'nil', but given type is '%s')",
+						key,
+						typeof(value)
+					),
+					2
+				)
 			end
 			if not TWEENABLE[typeof(value)] then
 				error(string.format("TweenService:Create property named '%s' cannot be tweened", key), 2)

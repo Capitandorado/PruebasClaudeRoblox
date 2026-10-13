@@ -13,6 +13,7 @@ local Signal = require(Shared.Util.Signal)
 local Services = script.Parent
 local Net = require(Services.Net)
 local Plots = require(Services.Plots)
+local Data = require(Services.Data)
 
 export type Session = {
 	player: Player,
@@ -23,6 +24,9 @@ export type Session = {
 	plot: number,
 	ready: boolean,
 	joinedAt: number,
+	loadedClock: number,
+	lastSave: number,
+	finalSaved: boolean,
 }
 
 local Sessions = {}
@@ -31,10 +35,6 @@ Sessions.Started = Signal.new()
 Sessions.Ending = Signal.new()
 
 local sessions: { [Player]: Session } = {}
-
--- Profile loading is pluggable so persistence (Services/Data) can take over.
-Sessions.loader = nil :: ((player: Player, now: number) -> Profile.Profile?)?
-Sessions.saver = nil :: ((session: Session, final: boolean) -> ())?
 
 function Sessions.now(): number
 	return workspace:GetServerTimeNow()
@@ -93,6 +93,7 @@ local ALL_SECTIONS = {
 	"settings",
 	"bestRarity",
 	"bestEps",
+	"runBestEps",
 	"playTime",
 }
 Sessions.AllSections = ALL_SECTIONS
@@ -133,14 +134,9 @@ local function onPlayerAdded(player: Player)
 		return
 	end
 	local now = Sessions.now()
-	local profile
-	if Sessions.loader then
-		profile = Sessions.loader(player, now)
-		if not profile then
-			return -- the loader kicked the player (data unavailable)
-		end
-	else
-		profile = Profile.new(now)
+	local profile = Data.load(player, now)
+	if not profile then
+		return -- kicked (data unavailable) or left while loading
 	end
 	if not player.Parent then
 		return
@@ -154,6 +150,9 @@ local function onPlayerAdded(player: Player)
 		plot = 0,
 		ready = false,
 		joinedAt = now,
+		loadedClock = os.clock(),
+		lastSave = os.clock(),
+		finalSaved = false,
 	}
 	sessions[player] = session
 	Progression.ensureQuests(profile, session.rng)
@@ -176,14 +175,13 @@ local function onPlayerRemoving(player: Player)
 	end
 	session.ready = false
 	Sessions.Ending:Fire(session)
-	if Sessions.saver then
-		Sessions.saver(session, true)
-	end
 	Plots.release(session)
+	Data.save(session, true)
 	sessions[player] = nil
 end
 
 function Sessions.start()
+	Data.setSessionProvider(Sessions.all)
 	Players.PlayerAdded:Connect(onPlayerAdded)
 	Players.PlayerRemoving:Connect(onPlayerRemoving)
 	for _, player in Players:GetPlayers() do

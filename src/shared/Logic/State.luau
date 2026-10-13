@@ -105,7 +105,7 @@ function State.chargeInterval(profile: Profile, machineId: string, production: P
 	if interval <= 0 then
 		return 0
 	end
-	return interval / State.speedFactor(profile, production)
+	return math.max(Economy.MinChargeInterval, interval / State.speedFactor(profile, production))
 end
 
 function State.chargeCap(profile: Profile, machineId: string): number
@@ -117,9 +117,17 @@ function State.chargeCap(profile: Profile, machineId: string): number
 	return cap
 end
 
+-- Paid boxes cost `boxCost`, or `boxCostSeconds` of the best production reached this run if
+-- that is higher, so they stay a real decision as the factory grows (removing artifacts
+-- does not make them cheaper: the run's best production is used).
 function State.boxCost(profile: Profile, machineId: string): number
 	local level = math.max(1, State.machineLevel(profile, machineId))
-	return math.floor(MachineStats.getStat(machineId, "boxCost", level))
+	local base = MachineStats.getStat(machineId, "boxCost", level)
+	if base <= 0 then
+		return 0
+	end
+	local seconds = MachineStats.getStat(machineId, "boxCostSeconds", level)
+	return math.floor(math.max(base, (profile.runBestEps or 0) * seconds))
 end
 
 function State.printerInterval(profile: Profile, production: Production.Result): number
@@ -127,7 +135,10 @@ function State.printerInterval(profile: Profile, production: Production.Result):
 	if level <= 0 then
 		return 0
 	end
-	return MachineStats.getStat("box_printer", "autoInterval", level) / State.speedFactor(profile, production)
+	return math.max(
+		Economy.MinPrinterInterval,
+		MachineStats.getStat("box_printer", "autoInterval", level) / State.speedFactor(profile, production)
+	)
 end
 
 -- Brings a fabricator's free charges up to date. Mutates the machine state.

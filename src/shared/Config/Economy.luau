@@ -18,12 +18,15 @@ Economy.MaxLuck = 25
 -- Duplicate chance cap (Echo Duplicator & co.).
 Economy.MaxDuplicateChance = 0.5
 -- Speed (fabricator / printer interval reduction) is applied as interval / (1 + speed).
-Economy.MaxSpeedBonus = 3
+Economy.MaxSpeedBonus = 1.5
+-- Hard floors (seconds) after every speed bonus.
+Economy.MinChargeInterval = 2
+Economy.MinPrinterInterval = 3
 -- Server simulation tick (seconds). Production is integrated per tick.
 Economy.TickInterval = 1
 -- Box printer can bank at most this many pending boxes while the player is away from the server.
 Economy.PrinterBacklog = 3
 -- Every quest reward is at least this many seconds of the player's current production.
-Economy.QuestRewardSeconds = 90
+Economy.QuestRewardSeconds = 30
 
 return Economy
