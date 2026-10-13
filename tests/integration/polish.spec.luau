@@ -136,7 +136,7 @@ return function(t)
 		t.eq(#rt:errors(), 0, errorsText(rt))
 	end)
 
-	t.test("candy buttons: thick scalable outline, gradient, idle pulse and glint", function()
+	t.test("candy buttons: pixel outlines, compact sizes, gradient, idle pulse and glint", function()
 		local rt = Fixture.server({ isStudio = true })
 		local player = Fixture.join(rt, { userId = 1007, noClient = false })
 		rt:run(1, 0.1)
@@ -144,8 +144,22 @@ return function(t)
 		local open = rt:findDescendant(ui, "OpenButton")
 		local rim = open:FindFirstChild("Rim")
 		t.eq(rim.ApplyStrokeMode, roblox.Enum.ApplyStrokeMode.Border)
-		t.eq(rim.StrokeSizingMode, roblox.Enum.StrokeSizingMode.ScaledSize, "outline scales with the UI")
-		t.ok(rim.Thickness >= 3, "thick outline")
+		t.ok(rim.Thickness >= 2.5, "thick outline")
+		-- Every outline in the interface is in pixels and of a sane width. (ScaledSize reads
+		-- Thickness as a fraction of the object's size: 3 would cover the screen.)
+		for _, inst in Instance.descendants(player.PlayerGui) do
+			if inst:IsA("UIStroke") then
+				local scaled = inst.StrokeSizingMode == roblox.Enum.StrokeSizingMode.ScaledSize
+				t.ok(
+					(scaled and inst.Thickness <= 0.1) or (not scaled and inst.Thickness <= 6),
+					"oversized outline on " .. inst.Parent:GetFullName()
+				)
+			end
+		end
+		-- The main buttons keep their compact footprint.
+		t.eq(open.Parent.Size, roblox.UDim2.fromOffset(300, 72), "OPEN size")
+		t.eq(rt:findDescendant(ui, "StoreButton").Parent.Size, roblox.UDim2.fromOffset(96, 64), "STORE size")
+		t.eq(rt:findDescendant(ui, "InventoryButton").Parent.Size, roblox.UDim2.fromOffset(70, 58), "menu size")
 		t.eq(open.Fill.Rotation, 90, "vertical gradient")
 		t.eq(open.Label.Text, "OPEN", "short label")
 		t.eq(open.Text, "", "text lives in the outlined label")

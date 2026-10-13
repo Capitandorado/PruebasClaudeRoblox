@@ -207,30 +207,42 @@ local function buildWindow(name: string): Frame
 		Parent = App.layers.Windows,
 	})
 	C.gradient(Color3.fromRGB(255, 255, 255), Color3.fromRGB(205, 200, 235)).Parent = frame
+	-- Thick bright frame, so windows pop over the 3D world like in current simulators.
+	local frameStroke = frame:FindFirstChildOfClass("UIStroke") :: UIStroke
+	frameStroke.Color = Color3.fromRGB(150, 120, 255)
+	frameStroke.Thickness = 3
+	frameStroke.Transparency = 0
 	C.new("UISizeConstraint", { MaxSize = Vector2.new(size.X, size.Y) }).Parent = frame
 	C.new("UIScale", { Name = "PopScale", Parent = frame })
+	-- Title "pill": coloured gradient band with an outlined cartoon title.
 	local header = C.new("Frame", {
 		Name = "Header",
-		BackgroundTransparency = 1,
-		Size = UDim2.new(1, 0, 0, 52),
+		Size = UDim2.new(1, -12, 0, 44),
+		Position = UDim2.fromOffset(6, 5),
+		Children = { C.corner(Theme.Corner) },
 		Parent = frame,
 	})
-	C.text({
+	C.paint(header, Color3.fromRGB(160, 110, 255), Color3.fromRGB(90, 50, 200))
+	C.outline(header, Color3.fromRGB(40, 20, 90), 2)
+	local title = C.text({
 		Name = "Title",
 		Text = def.icon .. "  " .. string.upper(def.title),
-		FontFace = Theme.Fonts.Display,
-		TextSize = 20,
-		Size = UDim2.new(1, -70, 1, 0),
-		Position = UDim2.fromOffset(18, 0),
+		FontFace = Theme.Fonts.Title,
+		TextColor3 = Color3.new(1, 1, 1),
+		Size = UDim2.new(1, -70, 1, -10),
+		Position = UDim2.fromOffset(14, 5),
 		Parent = header,
 	})
-	C.button({
+	C.fitText(title, 24, 12)
+	C.outline(title, Color3.fromRGB(40, 20, 90), 2, true)
+	C.candyButton({
 		name = "Close",
 		text = "X",
-		color = Colors.Bad,
-		size = UDim2.fromOffset(36, 36),
-		position = UDim2.new(1, -46, 0, 8),
-		textSize = 18,
+		top = Color3.fromRGB(255, 120, 120),
+		bottom = Color3.fromRGB(215, 40, 60),
+		size = UDim2.fromOffset(34, 34),
+		position = UDim2.new(1, -40, 0, 4),
+		textSize = 20,
 		parent = header,
 		onClick = function()
 			App.closeWindow()

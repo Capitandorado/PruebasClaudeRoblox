@@ -306,7 +306,7 @@ local function newGainGui(): BillboardGui
 		Parent = gui,
 	})
 	label.TextScaled = true
-	C.outline(label, Color3.fromRGB(70, 40, 0), 2.5, true)
+	C.outline(label, Color3.fromRGB(70, 40, 0), 2, true)
 	C.new("UIScale", { Name = "Pop", Parent = label })
 	return gui
 end

@@ -39,9 +39,23 @@ Hud.selectedMachine = Machines.StarterId
 
 local refs: { [string]: any } = {}
 local displayedEnergy = 0
-local badges: { [string]: Frame } = {}
+local badges: { [string]: GuiObject } = {}
 local questReady = false
 local questSeen = false
+
+-- Each menu button has its own bright colour, like the app icons of current simulators.
+local MENU_COLORS: { [string]: { Color3 } } = {
+	Inventory = { Color3.fromRGB(255, 190, 90), Color3.fromRGB(235, 110, 25) },
+	Collection = { Color3.fromRGB(120, 200, 255), Color3.fromRGB(40, 110, 235) },
+	Shop = { Color3.fromRGB(150, 240, 110), Color3.fromRGB(35, 160, 70) },
+	Upgrades = { Color3.fromRGB(205, 150, 255), Color3.fromRGB(130, 70, 225) },
+	Quests = { Color3.fromRGB(255, 235, 100), Color3.fromRGB(230, 160, 20) },
+	Rebirth = { Color3.fromRGB(255, 140, 205), Color3.fromRGB(215, 55, 140) },
+	Leaderboard = { Color3.fromRGB(110, 240, 215), Color3.fromRGB(20, 150, 150) },
+	Settings = { Color3.fromRGB(195, 200, 220), Color3.fromRGB(105, 110, 140) },
+	Home = { Color3.fromRGB(120, 235, 255), Color3.fromRGB(30, 145, 210) },
+	Admin = { Color3.fromRGB(255, 130, 115), Color3.fromRGB(200, 50, 50) },
+}
 
 local MENU = {
 	{ id = "Inventory", icon = "🎒", label = "Items" },
@@ -101,16 +115,30 @@ local function buildTopBar(parent: Frame)
 		Parent = bar,
 	})
 	refs.energyPill = pill
-	C.paint(pill, Color3.fromRGB(60, 50, 110), Color3.fromRGB(28, 24, 52))
-	C.text({
-		Name = "Icon",
-		Text = "⚡",
-		TextSize = 34,
-		TextColor3 = Colors.Energy,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		Size = UDim2.fromOffset(54, 64),
+	C.paint(pill, Color3.fromRGB(78, 62, 150), Color3.fromRGB(32, 26, 66))
+	local pillStroke = pill:FindFirstChildOfClass("UIStroke") :: UIStroke
+	pillStroke.Color = Color3.fromRGB(150, 120, 255)
+	pillStroke.Thickness = 3
+	pillStroke.Transparency = 0
+	-- Round yellow coin with the ⚡ icon: the currency reads at a glance, no word needed.
+	local coin = C.new("Frame", {
+		Name = "Coin",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 8, 0.5, 0),
+		Size = UDim2.fromOffset(46, 46),
+		Children = { C.corner(23) },
 		Parent = pill,
 	})
+	C.paint(coin, Color3.fromRGB(255, 240, 120), Color3.fromRGB(245, 160, 20))
+	C.outline(coin, Color3.fromRGB(110, 60, 0), 2.5)
+	local bolt = C.text({
+		Name = "Icon",
+		Text = "⚡",
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Size = UDim2.fromScale(1, 1),
+		Parent = coin,
+	})
+	C.fitText(bolt, 28, 12)
 	refs.energy = C.text({
 		Name = "Energy",
 		Text = "0",
@@ -123,7 +151,7 @@ local function buildTopBar(parent: Frame)
 	-- Big numbers shrink to fit instead of overflowing; the thick outline keeps them readable
 	-- over any background.
 	C.fitText(refs.energy, 36, 16)
-	C.outline(refs.energy, Theme.Outline, 3, true)
+	C.outline(refs.energy, Theme.Outline, 2.5, true)
 	refs.eps = C.text({
 		Name = "Eps",
 		Text = "+0/s",
@@ -134,7 +162,7 @@ local function buildTopBar(parent: Frame)
 		Parent = pill,
 	})
 	C.fitText(refs.eps, 18, 10)
-	C.outline(refs.eps, Theme.Outline, 2, true)
+	C.outline(refs.eps, Theme.Outline, 1.5, true)
 	refs.boostPill, refs.boost =
 		infoPill(bar, "BoostPill", 2, 360, Color3.fromRGB(255, 225, 120), Color3.fromRGB(70, 50, 10))
 	refs.effectsPill, refs.effects = infoPill(bar, "EffectsPill", 3, 500, Colors.TextDim)
@@ -154,8 +182,8 @@ local function buildStoreButton(parent: Frame)
 		icon = "🛒",
 		top = Color3.fromRGB(255, 236, 110),
 		bottom = Color3.fromRGB(255, 136, 20),
-		size = UDim2.fromOffset(104, 68),
-		position = UDim2.new(0.5, 158, 0, 6),
+		size = UDim2.fromOffset(96, 64),
+		position = UDim2.new(0.5, 158, 0, 8),
 		textSize = 20,
 		parent = parent,
 		onClick = function()
@@ -212,17 +240,24 @@ local function energyPopup(delta: number)
 	C.tween(scale, 0.35, { Scale = 1 }, Enum.EasingStyle.Back)
 end
 
-local function badge(button: Instance): Frame
-	return C.new("Frame", {
+local function badge(button: Instance): TextLabel
+	local dot = C.new("TextLabel", {
 		Name = "Badge",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -4, 0, 4),
-		Size = UDim2.fromOffset(14, 14),
-		BackgroundColor3 = Colors.Bad,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -6, 0, 6),
+		Size = UDim2.fromOffset(18, 18),
+		BackgroundColor3 = Color3.fromRGB(255, 60, 80),
+		Text = "!",
+		TextColor3 = Color3.new(1, 1, 1),
+		FontFace = Theme.Fonts.Number,
+		TextSize = 14,
+		ZIndex = 6,
 		Visible = false,
-		Children = { C.corner(7) },
+		Children = { C.corner(9) },
 		Parent = button,
 	})
+	C.outline(dot, Color3.new(1, 1, 1), 2)
+	return dot
 end
 
 local function buildMenu(parent: Frame)
@@ -239,7 +274,8 @@ local function buildMenu(parent: Frame)
 	-- screens, so it never runs off the bottom).
 	local layout = C.new("UIGridLayout", {
 		CellSize = UDim2.fromOffset(70, 58),
-		CellPadding = UDim2.fromOffset(5, 5),
+		-- Room for the darker base under each candy button.
+		CellPadding = UDim2.fromOffset(6, 9),
 		FillDirection = Enum.FillDirection.Vertical,
 		HorizontalAlignment = Enum.HorizontalAlignment.Left,
 		VerticalAlignment = Enum.VerticalAlignment.Center,
@@ -249,7 +285,7 @@ local function buildMenu(parent: Frame)
 	local function fit()
 		-- Height left for the menu: screen minus Roblox's top bar and a small margin.
 		local available = App.designViewport().Y - 58 / App.scale() - 24
-		layout.FillDirectionMaxCells = math.clamp(math.floor((available - 80 + 5) / 63), 3, 5)
+		layout.FillDirectionMaxCells = math.clamp(math.floor((available - 80 + 9) / 67), 3, 5)
 	end
 	fit()
 	local camera = workspace.CurrentCamera
@@ -257,44 +293,28 @@ local function buildMenu(parent: Frame)
 		camera:GetPropertyChangedSignal("ViewportSize"):Connect(fit)
 	end
 	local function addButton(id: string, icon: string, label: string, order: number, onClick: () -> ())
-		local button = C.new("TextButton", {
-			Name = id .. "Button",
-			Text = "",
-			AutoButtonColor = false,
-			Size = UDim2.fromOffset(70, 58),
-			BackgroundColor3 = Colors.Panel,
-			BackgroundTransparency = 0.1,
-			LayoutOrder = order,
-			Children = { C.corner(Theme.SmallCorner), C.stroke() },
-			Parent = menu,
+		local colors = MENU_COLORS[id] or MENU_COLORS.Settings
+		local holder, button, text = C.candyButton({
+			name = id .. "Button",
+			text = label,
+			icon = icon,
+			top = colors[1],
+			bottom = colors[2],
+			size = UDim2.fromOffset(70, 58),
+			textSize = 13,
+			parent = menu,
+			onClick = onClick,
 		})
-		C.text({
-			Text = icon,
-			TextSize = 26,
-			TextXAlignment = Enum.TextXAlignment.Center,
-			Size = UDim2.new(1, 0, 0, 34),
-			Position = UDim2.fromOffset(0, 3),
-			Parent = button,
-		})
-		C.text({
-			Text = label,
-			TextSize = 12,
-			TextColor3 = Colors.TextDim,
-			TextXAlignment = Enum.TextXAlignment.Center,
-			Size = UDim2.new(1, 0, 0, 16),
-			Position = UDim2.fromOffset(0, 37),
-			Parent = button,
-		})
-		local scale = C.new("UIScale", { Parent = button })
-		button.MouseEnter:Connect(function()
-			C.tween(scale, 0.1, { Scale = 1.06 })
-		end)
-		button.MouseLeave:Connect(function()
-			C.tween(scale, 0.1, { Scale = 1 })
-		end)
-		button.Activated:Connect(onClick)
+		holder.LayoutOrder = order
+		-- Square "app icon" layout: big icon on top, short outlined name underneath.
+		local iconLabel = button:FindFirstChild("Icon") :: TextLabel
+		iconLabel.Size = UDim2.new(1, -8, 0, 32)
+		iconLabel.Position = UDim2.fromOffset(4, 3)
+		text.FontFace = Theme.Fonts.Number
+		text.Size = UDim2.new(1, -6, 0, 15)
+		text.Position = UDim2.new(0, 3, 1, -19)
 		badges[id] = badge(button)
-		return button
+		return button, holder
 	end
 	for order, entry in MENU do
 		addButton(entry.id, entry.icon, entry.label, order, function()
@@ -309,13 +329,13 @@ local function buildMenu(parent: Frame)
 			App.showError(response.err)
 		end
 	end)
-	local adminButton = addButton("Admin", "🛠️", "Debug", #MENU + 2, function()
+	local _, adminHolder = addButton("Admin", "🛠️", "Debug", #MENU + 2, function()
 		App.toggleWindow("Admin")
 	end)
 	local player = Players.LocalPlayer
-	adminButton.Visible = player:GetAttribute("IsAdmin") == true
+	adminHolder.Visible = player:GetAttribute("IsAdmin") == true
 	player:GetAttributeChangedSignal("IsAdmin"):Connect(function()
-		adminButton.Visible = player:GetAttribute("IsAdmin") == true
+		adminHolder.Visible = player:GetAttribute("IsAdmin") == true
 	end)
 end
 
@@ -394,10 +414,10 @@ local function buildBoxPanel(parent: Frame)
 		icon = "🎁",
 		top = Color3.fromRGB(150, 255, 120),
 		bottom = Color3.fromRGB(20, 170, 70),
-		size = UDim2.fromOffset(300, 78),
-		position = UDim2.new(0.5, -40, 0, 34),
+		size = UDim2.fromOffset(300, 72),
+		position = UDim2.new(0.5, -40, 0, 38),
 		anchor = Vector2.new(0.5, 0),
-		textSize = 36,
+		textSize = 32,
 		parent = panel,
 		onClick = function()
 			if Box.auto then
@@ -407,21 +427,21 @@ local function buildBoxPanel(parent: Frame)
 		end,
 	})
 	refs.openButton = openButton
-	openLabel.Size = UDim2.new(1, -76, 0, 40)
-	openLabel.Position = UDim2.fromOffset(64, 4)
+	openLabel.Size = UDim2.new(1, -76, 0, 36)
+	openLabel.Position = UDim2.fromOffset(64, 3)
 	refs.openSub = C.text({
 		Name = "Sub",
 		Text = "",
 		FontFace = Theme.Fonts.Number,
 		TextColor3 = Color3.new(1, 1, 1),
 		TextXAlignment = Enum.TextXAlignment.Center,
-		Size = UDim2.new(1, -76, 0, 18),
-		Position = UDim2.fromOffset(64, 44),
+		Size = UDim2.new(1, -76, 0, 16),
+		Position = UDim2.fromOffset(64, 39),
 		ZIndex = 4,
 		Parent = openButton,
 	})
 	C.fitText(refs.openSub, 16, 10)
-	C.outline(refs.openSub, Color3.fromRGB(10, 70, 30), 2, true)
+	C.outline(refs.openSub, Color3.fromRGB(10, 70, 30), 1.5, true)
 	local bar, setBar = C.progress({
 		Name = "Charge",
 		Size = UDim2.new(1, -84, 0, 7),
@@ -438,9 +458,9 @@ local function buildBoxPanel(parent: Frame)
 		text = "AUTO\nOFF",
 		top = Color3.fromRGB(140, 150, 210),
 		bottom = Color3.fromRGB(64, 66, 130),
-		size = UDim2.fromOffset(84, 78),
-		position = UDim2.new(0.5, 118, 0, 34),
-		textSize = 20,
+		size = UDim2.fromOffset(84, 72),
+		position = UDim2.new(0.5, 118, 0, 38),
+		textSize = 18,
 		parent = panel,
 		onClick = function()
 			Box.setAuto(not Box.auto, Hud.selectedMachine)
@@ -467,10 +487,12 @@ local function buildQuestTracker(parent: Frame)
 		Position = UDim2.new(1, -12, 0, 10),
 		Size = UDim2.fromOffset(280, 96),
 		BackgroundColor3 = Colors.Panel,
-		BackgroundTransparency = 0.15,
-		Children = { C.corner(), C.stroke() },
+		BackgroundTransparency = 0.05,
+		Children = { C.corner() },
 		Parent = parent,
 	})
+	C.paint(tracker, Color3.fromRGB(70, 52, 140), Color3.fromRGB(34, 26, 74))
+	C.outline(tracker, Color3.fromRGB(150, 120, 255), 2.5)
 	refs.questTracker = tracker
 	C.padding(10).Parent = tracker
 	C.text({
@@ -510,21 +532,25 @@ local function buildGoalBar(parent: Frame)
 		Position = UDim2.new(0.5, 0, 1, -214),
 		Size = UDim2.fromOffset(540, 50),
 		BackgroundColor3 = Color3.fromRGB(20, 40, 70),
-		BackgroundTransparency = 0.08,
+		BackgroundTransparency = 0.04,
 		Visible = false,
-		Children = { C.corner(Theme.Corner), C.stroke(Colors.Accent, 1.5, 0.35) },
+		Children = { C.corner(Theme.Corner) },
 		Parent = parent,
 	})
+	C.paint(bar, Color3.fromRGB(45, 120, 210), Color3.fromRGB(20, 55, 130))
+	C.outline(bar, Color3.fromRGB(130, 220, 255), 2.5)
 	refs.goalText = C.text({
 		Name = "Label",
 		Text = "",
-		TextSize = 16,
+		FontFace = Theme.Fonts.Number,
+		TextSize = 17,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		Size = UDim2.new(1, -24, 0, 32),
 		Position = UDim2.fromOffset(12, 4),
 		Parent = bar,
 	})
+	C.outline(refs.goalText, Color3.fromRGB(10, 30, 80), 1.5, true)
 	local progress, setProgress = C.progress({
 		Name = "Progress",
 		Size = UDim2.new(1, -40, 0, 6),

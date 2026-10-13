@@ -51,18 +51,20 @@ function C.stroke(color: Color3?, thickness: number?, transparency: number?): UI
 		Thickness = thickness or 1.5,
 		Transparency = transparency or 0.2,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		StrokeSizingMode = Enum.StrokeSizingMode.FixedSize, -- Thickness in pixels
 	})
 end
 
--- Thick, rounded outline that scales with the UI (UIScale) instead of staying 1-2 px on
--- big screens or turning chunky on phones. `contextual` outlines the text of a label.
+-- Thick, rounded dark outline in pixels. `contextual` outlines the text of a label instead
+-- of the frame's border. (Not StrokeSizingMode.ScaledSize: that mode reads Thickness as a
+-- fraction of the object's size, so a thickness of 3 becomes a huge stroke.)
 function C.outline(parent: GuiObject, color: Color3?, thickness: number?, contextual: boolean?): UIStroke
 	return C.new("UIStroke", {
 		Color = color or Theme.Outline,
-		Thickness = thickness or 3,
+		Thickness = thickness or 2,
 		LineJoinMode = Enum.LineJoinMode.Round,
 		ApplyStrokeMode = if contextual then Enum.ApplyStrokeMode.Contextual else Enum.ApplyStrokeMode.Border,
-		StrokeSizingMode = Enum.StrokeSizingMode.ScaledSize,
+		StrokeSizingMode = Enum.StrokeSizingMode.FixedSize,
 		Parent = parent,
 	})
 end
@@ -180,7 +182,7 @@ function C.button(options: ButtonOptions): TextButton
 		},
 	})
 	-- Dark rim + glossy top half: every button reads as a pressable "candy" shape.
-	local rim = C.outline(button, color:Lerp(Color3.new(0, 0, 0), 0.55), 2.5)
+	local rim = C.outline(button, color:Lerp(Color3.new(0, 0, 0), 0.55), 2)
 	C.new("Frame", {
 		Name = "Gloss",
 		BackgroundColor3 = Color3.new(1, 1, 1),
@@ -316,7 +318,7 @@ function C.candyButton(options: CandyOptions): (Frame, TextButton, TextLabel)
 	button:SetAttribute("CandyTop", options.top)
 	button:SetAttribute("CandyBottom", options.bottom)
 	C.new("UIGradient", { Name = "Fill", Rotation = 90, Parent = button })
-	local rim = C.outline(button, nil, 3.5)
+	local rim = C.outline(button, nil, 3)
 	rim.Name = "Rim"
 	C.new("Frame", {
 		Name = "Gloss",
@@ -384,7 +386,7 @@ function C.candyButton(options: CandyOptions): (Frame, TextButton, TextLabel)
 		Parent = button,
 	})
 	C.fitText(label, options.textSize or 30, 12)
-	C.outline(label, nil, 3, true)
+	C.outline(label, nil, 2, true)
 	candyColors(button)
 
 	local press = C.new("UIScale", { Name = "Press", Parent = button })

@@ -77,7 +77,13 @@ local function export(inst)
 		elseif child:IsA("UICorner") then
 			node.corner = child.CornerRadius.Offset
 		elseif child:IsA("UIStroke") then
-			local stroke = { color = color(child.Color), thickness = child.Thickness, t = child.Transparency }
+			local stroke = {
+				color = color(child.Color),
+				thickness = child.Thickness,
+				t = child.Transparency,
+				-- ScaledSize: Thickness is a fraction of the object's size, not pixels.
+				scaled = child.StrokeSizingMode == roblox.Enum.StrokeSizingMode.ScaledSize,
+			}
 			if child.ApplyStrokeMode == roblox.Enum.ApplyStrokeMode.Contextual and node.text then
 				node.textStroke = stroke
 			else

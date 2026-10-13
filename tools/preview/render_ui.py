@@ -176,6 +176,13 @@ def gradient_fill(node, w, h, base_alpha):
     return out
 
 
+def stroke_px(stroke, w, h):
+    """Stroke width in design units (ScaledSize strokes are relative to the object's size)."""
+    if stroke.get("scaled"):
+        return stroke["thickness"] * min(w, h)
+    return stroke["thickness"]
+
+
 def draw_node(img, node, scale):
     x, y, w, h = node["_rect"]
     clip = node["_clip"]
@@ -204,17 +211,17 @@ def draw_node(img, node, scale):
         if stroke:
             d.rounded_rectangle(
                 box, radius=radius, outline=rgb(stroke["color"], 1 - stroke["t"]),
-                width=max(1, int(stroke["thickness"] * scale)),
+                width=max(1, int(stroke_px(stroke, w, h) * scale)),
             )
     elif node.get("bgT", 1) < 0.99:
         fill = rgb(node["bg"], 1 - node["bgT"])
         stroke = node.get("stroke")
         outline = rgb(stroke["color"], 1 - stroke["t"]) if stroke else None
-        width = max(1, int(stroke["thickness"] * scale)) if stroke else 0
+        width = max(1, int(stroke_px(stroke, w, h) * scale)) if stroke else 0
         d.rounded_rectangle(box, radius=radius, fill=fill, outline=outline, width=width)
     elif node.get("stroke"):
         stroke = node["stroke"]
-        d.rounded_rectangle(box, radius=radius, outline=rgb(stroke["color"], 1 - stroke["t"]), width=max(1, int(stroke["thickness"] * scale)))
+        d.rounded_rectangle(box, radius=radius, outline=rgb(stroke["color"], 1 - stroke["t"]), width=max(1, int(stroke_px(stroke, w, h) * scale)))
     text = node.get("text")
     if text and node.get("textT", 0) < 0.99:
         size = node.get("textSize", 14)
@@ -248,7 +255,7 @@ def draw_node(img, node, scale):
             if ts:
                 d.text(
                     (tx, ty), line, fill=rgb(node["textColor"], 1 - node.get("textT", 0)), font=f,
-                    stroke_width=max(1, int(ts["thickness"] * scale * 0.8)),
+                    stroke_width=max(1, int(stroke_px(ts, w, h) * scale * 0.8)),
                     stroke_fill=rgb(ts["color"], 1 - ts["t"]),
                 )
             else:

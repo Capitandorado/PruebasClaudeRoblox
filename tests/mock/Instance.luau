@@ -218,8 +218,16 @@ local function defaultValue(className, key, prop)
 			local ok, items = pcall(function()
 				return world.rbx.Enum[prop.typeName]:GetEnumItems()
 			end)
+			-- Lune's GetEnumItems order is not stable between runs: take the item with the
+			-- lowest value, which is the engine default for almost every enum property.
 			if ok and items and items[1] then
-				value = items[1]
+				local lowest = items[1]
+				for _, item in items do
+					if item.Value < lowest.Value then
+						lowest = item
+					end
+				end
+				value = lowest
 			end
 		end
 	end

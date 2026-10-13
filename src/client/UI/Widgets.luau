@@ -35,7 +35,9 @@ function Widgets.itemCard(
 		LayoutOrder = opts.layoutOrder or 0,
 		Children = { C.corner(Theme.SmallCorner) },
 	})
-	local stroke = C.stroke(color, if opts.selected then 3 else 1.5, if opts.selected then 0 else 0.35)
+	-- Rarity-tinted card with a bold rarity outline (thicker when selected).
+	C.paint(card, color:Lerp(Colors.Card, 0.55), Colors.Card)
+	local stroke = C.stroke(color, if opts.selected then 3.5 else 2, if opts.selected then 0 else 0.15)
 	stroke.Parent = card
 	C.new("Frame", {
 		Name = "Band",

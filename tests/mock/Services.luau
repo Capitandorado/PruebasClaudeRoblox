@@ -22,6 +22,20 @@ local function rbx()
 	return world.rbx
 end
 
+-- Engine defaults that differ from "lowest enum value" or that tests rely on.
+D.UIStroke = {
+	ApplyStrokeMode = function()
+		return rbx().Enum.ApplyStrokeMode.Contextual
+	end,
+	LineJoinMode = function()
+		return rbx().Enum.LineJoinMode.Round
+	end,
+	StrokeSizingMode = function()
+		return rbx().Enum.StrokeSizingMode.FixedSize
+	end,
+	Thickness = 1,
+}
+
 local function scheduler()
 	return world.scheduler
 end
