@@ -47,7 +47,7 @@ function Rewards.describe(profile: Profile, reward: Reward): string
 		local boost = Monetization.Boosts[reward.boost]
 		table.insert(
 			parts,
-			Format.duration(reward.duration or 0) .. " " .. (if boost then boost.name else reward.boost)
+			Format.shortDuration(reward.duration or 0) .. " " .. (if boost then boost.name else reward.boost)
 		)
 	end
 	return table.concat(parts, " + ")

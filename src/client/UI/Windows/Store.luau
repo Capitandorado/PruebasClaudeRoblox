@@ -23,6 +23,7 @@ local Widgets = require(script.Parent.Parent.Widgets)
 
 local Colors = Theme.Colors
 local GOLD = Color3.fromRGB(255, 196, 64)
+local DARK = Color3.fromRGB(60, 30, 0)
 
 local prices: { [number]: string } = {}
 local fetching: { [number]: boolean } = {}
@@ -60,7 +61,7 @@ return {
 	name = "Store",
 	title = "Store",
 	icon = "🛒",
-	size = Vector2.new(620, 480),
+	size = Vector2.new(620, 470),
 	build = function(content: Frame, app: any)
 		local currentTab = "Passes"
 		local header = C.text({
@@ -126,6 +127,7 @@ return {
 					C.setButton(button, "OWNED ✓", false, Colors.Good)
 				else
 					C.setButton(button, priceText(pass.id, Enum.InfoType.GamePass, refresh), true, GOLD)
+					button.TextColor3 = DARK
 					C.onClick(button, function()
 						buy("pass", pass.key, pass.id)
 					end)
@@ -160,6 +162,7 @@ return {
 					layoutOrder = order,
 				})
 				C.setButton(button, priceText(product.id, Enum.InfoType.Product, refresh), true, GOLD)
+				button.TextColor3 = DARK
 				C.onClick(button, function()
 					buy("product", product.key, product.id)
 				end)

@@ -85,4 +85,19 @@ function Format.duration(seconds: number): string
 	return string.format("%dh %02dm", hours, minutes % 60)
 end
 
+-- Short, round durations for rewards: "45s", "10 min", "2 h", "1 h 30 min".
+function Format.shortDuration(seconds: number): string
+	seconds = math.max(0, math.floor(seconds + 0.5))
+	if seconds < 60 then
+		return seconds .. "s"
+	end
+	local minutes = math.floor(seconds / 60)
+	if minutes < 60 then
+		return minutes .. " min"
+	end
+	local hours = math.floor(minutes / 60)
+	local rest = minutes % 60
+	return if rest == 0 then hours .. " h" else string.format("%d h %d min", hours, rest)
+end
+
 return Format

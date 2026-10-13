@@ -12,6 +12,7 @@ local Format = require(Shared.Util.Format)
 local State = require(Shared.Logic.State)
 local Events = require(Shared.Logic.Events)
 local Progression = require(Shared.Logic.Actions.Progression)
+local Signal = require(Shared.Util.Signal)
 local Monetization = require(Shared.Config.Monetization)
 local Milestones = require(Shared.Config.Milestones)
 local Rewards = require(Shared.Logic.Actions.Rewards)
@@ -23,10 +24,13 @@ local Remote = require(Client.Core.Remote)
 local Sound = require(Client.Core.Sound)
 local Box = require(Client.Controllers.Box)
 local App = require(script.Parent.App)
+local Goals = require(script.Parent.Goals)
 local Theme = require(script.Parent.Theme)
 local C = require(script.Parent.Components)
 
 local Hud = {}
+
+Hud.GoalChanged = Signal.new() -- (goal) when the next-step goal changes
 
 local Colors = Theme.Colors
 
@@ -468,50 +472,56 @@ local function buildQuestTracker(parent: Frame)
 	end)
 end
 
-local function buildTip(parent: Frame)
-	local tip = C.panel({
-		Name = "Tip",
+-- Goal bar: always says what to do next (UI/Goals) with progress; tapping it opens the
+-- window where that happens.
+local currentGoal: Goals.Goal? = nil
+
+local function buildGoalBar(parent: Frame)
+	local bar = C.new("TextButton", {
+		Name = "GoalBar",
+		Text = "",
+		AutoButtonColor = false,
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -218),
-		Size = UDim2.fromOffset(520, 46),
+		Position = UDim2.new(0.5, 0, 1, -214),
+		Size = UDim2.fromOffset(540, 50),
 		BackgroundColor3 = Color3.fromRGB(20, 40, 70),
+		BackgroundTransparency = 0.08,
 		Visible = false,
+		Children = { C.corner(Theme.Corner), C.stroke(Colors.Accent, 1.5, 0.35) },
 		Parent = parent,
 	})
-	refs.tipText = C.text({
-		Name = "Text",
+	refs.goalText = C.text({
+		Name = "Label",
 		Text = "",
 		TextSize = 16,
 		TextXAlignment = Enum.TextXAlignment.Center,
-		Size = UDim2.new(1, -20, 1, 0),
-		Position = UDim2.fromOffset(10, 0),
-		Parent = tip,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		Size = UDim2.new(1, -24, 0, 32),
+		Position = UDim2.fromOffset(12, 4),
+		Parent = bar,
 	})
-	refs.tip = tip
-end
-
--- First-session guidance: one short hint at a time until the core loop is learned.
-local function tipFor(profile: any): string?
-	if profile.rebirths > 0 then
-		return nil
-	end
-	if profile.stats.boxesOpened == 0 then
-		return "👋 Welcome! Press OPEN BOX to fabricate your first artifact."
-	end
-	if next(profile.placed) == nil then
-		return "Place it: tap a pedestal on your plot, or open 🎒 Items → Auto-place best."
-	end
-	local printer = Machines.get("box_printer")
-	if printer and not profile.machines.box_printer then
-		if profile.energy >= printer.cost then
-			return "You can afford the Box Printer! Open 🏭 Machines to buy it."
+	local progress, setProgress = C.progress({
+		Name = "Progress",
+		Size = UDim2.new(1, -40, 0, 6),
+		Position = UDim2.new(0, 20, 1, -12),
+		Parent = bar,
+	})
+	refs.goalProgress = progress
+	refs.setGoalProgress = setProgress
+	local scale = C.new("UIScale", { Parent = bar })
+	bar.MouseEnter:Connect(function()
+		C.tween(scale, 0.1, { Scale = 1.03 })
+	end)
+	bar.MouseLeave:Connect(function()
+		C.tween(scale, 0.1, { Scale = 1 })
+	end)
+	bar.Activated:Connect(function()
+		local goal = currentGoal
+		if goal and goal.window then
+			App.openWindow(goal.window, if goal.tab then { tab = goal.tab } else nil)
 		end
-		return "Artifacts produce ⚡ every second. Save ⚡" .. Format.number(printer.cost) .. " for the Box Printer."
-	end
-	if profile.expansion == 0 then
-		return "Tip: some artifacts boost their neighbours. Expand your plot in 🏭 Machines → Expansion."
-	end
-	return nil
+	end)
+	refs.tip = bar
 end
 
 local function refreshTip()
@@ -519,9 +529,25 @@ local function refreshTip()
 	if not profile or not refs.tip then
 		return
 	end
-	local text = tipFor(profile)
-	refs.tip.Visible = text ~= nil and App.currentWindow() == nil
-	refs.tipText.Text = text or ""
+	local goal = Goals.current(profile, Store.now())
+	local changed = (currentGoal and currentGoal.id) ~= (goal and goal.id)
+	currentGoal = goal
+	local placing = refs.placementBanner ~= nil and refs.placementBanner.Visible
+	refs.tip.Visible = goal ~= nil and App.currentWindow() == nil and not placing
+	refs.goalText.Text = if goal then goal.text else ""
+	refs.goalProgress.Visible = goal ~= nil and goal.progress ~= nil
+	if goal and goal.progress then
+		refs.setGoalProgress(goal.progress, if goal.progress >= 1 then Colors.Good else Colors.Accent)
+	end
+	if changed and goal then
+		-- A small pop when the goal changes, so the player notices the new step.
+		local scale = refs.tip:FindFirstChildOfClass("UIScale")
+		if scale then
+			scale.Scale = 0.85
+			C.tween(scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back)
+		end
+		Hud.GoalChanged:Fire(goal)
+	end
 end
 
 local function buildPlacementBanner(parent: Frame)
@@ -568,6 +594,7 @@ function Hud.showPlacement(text: string?, onCancel: (() -> ())?)
 	if onCancel then
 		refs.placementConnection = refs.placementCancel.Activated:Connect(onCancel)
 	end
+	refreshTip()
 end
 
 function Hud.refreshBoxPanel()
@@ -744,7 +771,7 @@ function Hud.start()
 	buildMenu(root)
 	buildBoxPanel(root)
 	buildQuestTracker(root)
-	buildTip(root)
+	buildGoalBar(root)
 	buildPlacementBanner(root)
 
 	Store.watch({ "machines" }, function()
@@ -765,9 +792,9 @@ function Hud.start()
 	App.WindowChanged:Connect(function(name)
 		local root = App.layers.Hud
 		local hidden = name ~= nil
-		for _, element in { root:FindFirstChild("BoxPanel"), root:FindFirstChild("Tip") } do
+		for _, element in { root:FindFirstChild("BoxPanel"), root:FindFirstChild("GoalBar") } do
 			if element then
-				(element :: any).Visible = not hidden and (element.Name ~= "Tip" or refs.tipText.Text ~= "")
+				(element :: any).Visible = not hidden and (element.Name ~= "GoalBar" or currentGoal ~= nil)
 			end
 		end
 		-- On phones a window reaches the top of the screen and would cover the quest tracker.

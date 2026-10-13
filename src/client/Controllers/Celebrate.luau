@@ -177,7 +177,7 @@ local function onPurchased(summary: any)
 				.. " active: "
 				.. (if boost then boost.name else "boost")
 				.. " for "
-				.. Format.duration(summary.remaining or 0),
+				.. Format.shortDuration(summary.remaining or 0),
 			"success"
 		)
 	else

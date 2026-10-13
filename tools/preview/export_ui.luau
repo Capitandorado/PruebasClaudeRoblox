@@ -167,6 +167,11 @@ do
 	)
 end
 scene("window_Quests_Daily", { 1280, 720 }, openWindow("Quests", "Daily"))
+scene("window_Store", { 1280, 720 }, openWindow("Store"))
+scene("window_Store_Boosts", { 1280, 720 }, openWindow("Store", "Boosts"))
+scene("window_Store_Codes", { 1280, 720 }, openWindow("Store", "Codes"))
+scene("window_Store_phone", { 812, 375 }, openWindow("Store"))
+scene("window_Collection_Rewards", { 1280, 720 }, openWindow("Collection", "Rewards"))
 scene("window_Quests_Daily_phone", { 812, 375 }, openWindow("Quests", "Daily"))
 local function welcomeBack(rt, player)
 	progress(rt, player)

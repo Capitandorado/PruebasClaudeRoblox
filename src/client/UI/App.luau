@@ -198,7 +198,8 @@ local function buildWindow(name: string): Frame
 	local frame = C.panel({
 		Name = "Window_" .. name,
 		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -14, 0.5, 10),
+		-- A little below centre so even the tallest window clears the quest tracker.
+		Position = UDim2.new(1, -14, 0.5, 16),
 		Size = UDim2.fromOffset(size.X, size.Y),
 		Visible = false,
 		BackgroundColor3 = Colors.Panel,
