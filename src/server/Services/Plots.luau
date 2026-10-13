@@ -78,14 +78,16 @@ local function buildPedestal(parent: Instance, plotIndex: number, slot: number, 
 	local model = Build.model("Slot_" .. slot, parent)
 	local base = plotFrame * Plots.slotLocal(slot)
 	Build.root(model, base * CFrame.new(0, 0.6, 0))
+	-- Pedestals start as locked holograms; renderSlots materialises the unlocked ones.
 	Build.cylinder({
 		Name = "Base",
 		Height = 1.2,
 		Diameter = 5,
 		CFrame = base * CFrame.new(0, 0.6, 0),
 		Color = Color3.fromRGB(52, 54, 72),
-		Material = Enum.Material.Metal,
-		CanCollide = true,
+		Material = Enum.Material.ForceField,
+		Transparency = 0.85,
+		CanCollide = false,
 		Parent = model,
 	})
 	Build.cylinder({
@@ -95,6 +97,7 @@ local function buildPedestal(parent: Instance, plotIndex: number, slot: number, 
 		CFrame = base * CFrame.new(0, 1.25, 0),
 		Color = EMPTY_RING,
 		Material = Enum.Material.Neon,
+		Transparency = 1,
 		Parent = model,
 	})
 	local hitbox = Build.part({
@@ -106,6 +109,7 @@ local function buildPedestal(parent: Instance, plotIndex: number, slot: number, 
 	})
 	hitbox:SetAttribute("SlotIndex", slot)
 	hitbox:SetAttribute("PlotIndex", plotIndex)
+	hitbox:SetAttribute("Locked", true)
 	hitbox:AddTag("PedestalHitbox")
 	return model
 end
@@ -263,8 +267,9 @@ local function buildShell(index: number, parent: Instance): Model
 			Height = 0.2,
 			Diameter = 4.9,
 			CFrame = plotFrame * localFrame * CFrame.new(0, 2.05, 0),
-			Color = Color3.fromRGB(255, 210, 90),
+			Color = EMPTY_RING,
 			Material = Enum.Material.Neon,
+			Transparency = 0.6,
 			Parent = showcase,
 		})
 	end
@@ -535,6 +540,16 @@ local function renderShowcase(index: number, profile: any)
 		display:PivotTo(plotFrame * SHOWCASE_LOCAL[slot] * CFrame.new(0, 4.6, 0))
 		display:AddTag("FloatingArtifact")
 		display.Parent = showcase
+	end
+	-- Empty podiums stay dim; filled ones glow in the colour of their artifact's rarity.
+	for slot in SHOWCASE_LOCAL do
+		local ring = showcase:FindFirstChild("PodiumRing" .. slot) :: BasePart?
+		if ring then
+			local artifact = ids[slot] and Artifacts.get(ids[slot])
+			local rarity = artifact and Rarities.get(artifact.rarity)
+			ring.Color = if rarity then rarity.color else EMPTY_RING
+			ring.Transparency = if rarity then 0 else 0.6
+		end
 	end
 end
 

@@ -136,10 +136,11 @@ def intersect(part, o_world, d_world):
             slope /= np.linalg.norm(slope)
             planes.append((slope, 0.0))
         t, normals = intersect_convex(o, d, planes)
-    with np.errstate(invalid="ignore"):
-        world_normals = np.nan_to_num(normals) @ R.T
-    norm = np.linalg.norm(world_normals, axis=1, keepdims=True)
-    world_normals = world_normals / np.maximum(norm, 1e-9)
+    # Rays that miss carry inf/nan normals; they are discarded by the depth test.
+    with np.errstate(all="ignore"):
+        world_normals = np.nan_to_num(normals, posinf=0.0, neginf=0.0) @ R.T
+        norm = np.linalg.norm(world_normals, axis=1, keepdims=True)
+        world_normals = world_normals / np.maximum(norm, 1e-9)
     return t, world_normals
 
 
@@ -236,6 +237,9 @@ def main():
     target = p + R @ np.array([2.0, 0.0, 4.0])
     plot = render(data["plot"]["parts"], eye, target, 1000, 620, fov=48)
     Image.fromarray(plot).save(os.path.join(out_dir, "plot.png"))
+    if data.get("world"):
+        world = render(data["world"]["parts"], (210.0, 170.0, 260.0), (0.0, -10.0, 20.0), 1000, 620, fov=55)
+        Image.fromarray(world).save(os.path.join(out_dir, "world.png"))
     print("wrote", out_dir)
 
 

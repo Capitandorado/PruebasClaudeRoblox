@@ -81,7 +81,10 @@ return function(t)
 			end
 		end
 		t.eq(best, 1, "exactly one best pedestal")
-		t.ok(string.find(labels.Slot1.Main.Text, "^%+") ~= nil, "replacing the cube still gains: " .. labels.Slot1.Main.Text)
+		t.ok(
+			string.find(labels.Slot1.Main.Text, "^%+") ~= nil,
+			"replacing the cube still gains: " .. labels.Slot1.Main.Text
+		)
 		rt:asClient(player, function()
 			placement.cancel()
 		end)

@@ -31,6 +31,12 @@ interfaz se construye y las pruebas pulsan sus botones.
 | Seguridad y multijugador | Fuzzing de todas las acciones, peticiones en paralelo, cliente manipulado, 8 jugadores independientes, servidor lleno, visitas, clasificación global |
 | Pulido | Escala y menú en pantalla de móvil, consejos de inicio, ventanas que no se reconstruyen sin cambios |
 
+Prueba de carga (`tools/soak.luau`, 30 minutos simulados, 4 jugadores con la interfaz real):
+0 errores, 375 cajas abiertas, un jugador sale y vuelve a entrar, y el cierre guarda a todos.
+Las instancias crecen con el progreso (más máquinas, pedestales y objetos distintos en el
+inventario); la cuadrícula del inventario es lo único que crece en la interfaz y está acotada
+por la capacidad del almacén.
+
 Además: comprobación de tipos con luau-lsp y las definiciones oficiales de Roblox, lint con
 Selene, y el `.rbxl` compilado se abre y cada script se compila con el compilador de Luau.
 

@@ -32,7 +32,10 @@ return function(t)
 			-- Each character stands on its own plot.
 			local character = players[index].Character
 			local spawnPad = model:FindFirstChild("Spawn")
-			t.ok((character:GetPivot().Position - spawnPad.Position).Magnitude < 10, "player " .. index .. " spawned on own plot")
+			t.ok(
+				(character:GetPivot().Position - spawnPad.Position).Magnitude < 10,
+				"player " .. index .. " spawned on own plot"
+			)
 		end
 		-- Only even players place an artifact: odd players must not earn anything.
 		for index, player in players do
@@ -131,10 +134,16 @@ return function(t)
 		end)
 		rt:asServer(function()
 			for _ = 1, 5 do
-				Game.announceGrants(session, { machineId = "starter_fabricator", grants = { { key = "void_nucleus||1", newArtifact = false } } })
+				Game.announceGrants(
+					session,
+					{ machineId = "starter_fabricator", grants = { { key = "void_nucleus||1", newArtifact = false } } }
+				)
 			end
 			-- ...but a Void find always goes through.
-			Game.announceGrants(session, { machineId = "starter_fabricator", grants = { { key = "the_singularity||1", newArtifact = false } } })
+			Game.announceGrants(
+				session,
+				{ machineId = "starter_fabricator", grants = { { key = "the_singularity||1", newArtifact = false } } }
+			)
 		end)
 		rt:run(0.5, 0.1)
 		t.eq(announced, 2, "one mythic + the void find")

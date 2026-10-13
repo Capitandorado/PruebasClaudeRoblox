@@ -61,3 +61,15 @@ UIGridLayout, UIScale, recorte) para dibujar capturas aproximadas:
 lune run tools/preview/export_ui.luau build/ui.json
 python3 tools/preview/render_ui.py build/ui.json build/ui
 ```
+
+## Prueba de carga larga
+
+`tools/soak.luau` juega una sesión larga con varios jugadores y la interfaz real (modo
+automático, compras, colocar, abrir ventanas, visitas, salir y volver a entrar) y cuenta las
+instancias del mundo y de la interfaz cada 5 minutos simulados para detectar fugas:
+
+```
+lune run tools/soak.luau 30 4   # 30 minutos simulados, 4 jugadores
+```
+
+Termina con código 1 si algún script lanza un error o el cierre del servidor no guarda.

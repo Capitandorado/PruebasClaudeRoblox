@@ -48,7 +48,12 @@ local ArtifactModels = Fixture.require(rt, "Visuals.ArtifactModels")
 local MachineModels = Fixture.require(rt, "Visuals.MachineModels")
 rt:asServer(function()
 	for _, artifact in Artifacts.List do
-		table.insert(result.artifacts, { id = artifact.id, name = artifact.name, rarity = artifact.rarity, parts = dump(ArtifactModels.build(artifact.id)) })
+		table.insert(result.artifacts, {
+			id = artifact.id,
+			name = artifact.name,
+			rarity = artifact.rarity,
+			parts = dump(ArtifactModels.build(artifact.id)),
+		})
 	end
 	for _, mutation in { "Gold", "Neon", "Rainbow", "Corrupted" } do
 		table.insert(result.artifacts, {
@@ -59,7 +64,10 @@ rt:asServer(function()
 		})
 	end
 	for _, machine in Machines.List do
-		table.insert(result.machines, { id = machine.id, name = machine.name, parts = dump(MachineModels.build(machine.id)) })
+		table.insert(
+			result.machines,
+			{ id = machine.id, name = machine.name, parts = dump(MachineModels.build(machine.id)) }
+		)
 	end
 end)
 
@@ -74,9 +82,18 @@ for _, machine in Machines.List do
 	profile.machines[machine.id] = { level = 3, charges = 0, chargeAt = 0 }
 end
 local fill = {
-	"the_singularity||1", "void_nucleus|Rainbow|2", "astral_compass||1", "halo_reactor|Gold|1",
-	"the_anomaly||1", "gravity_well||3", "chrono_turbine||1", "entropy_engine|Neon|1",
-	"reactor_core||2", "prism_lens||1", "echo_duplicator||1", "flux_coil||1",
+	"the_singularity||1",
+	"void_nucleus|Rainbow|2",
+	"astral_compass||1",
+	"halo_reactor|Gold|1",
+	"the_anomaly||1",
+	"gravity_well||3",
+	"chrono_turbine||1",
+	"entropy_engine|Neon|1",
+	"reactor_core||2",
+	"prism_lens||1",
+	"echo_duplicator||1",
+	"flux_coil||1",
 }
 for slot = 1, 24 do
 	profile.placed[tostring(slot)] = fill[(slot - 1) % #fill + 1]
@@ -91,5 +108,32 @@ local plotModel = server:find(server.workspace, "VoidFactory.Plots.Plot_" .. ses
 local origin = { plotModel.PrimaryPart.CFrame:GetComponents() }
 result.plot = { origin = origin, parts = dump(plotModel) }
 
+-- The whole world from above: hub, bridges and a few occupied plots.
+local worldServer = Fixture.server({ isStudio = true })
+for index = 1, 3 do
+	local worldPlayer = Fixture.join(worldServer, { userId = 100 + index })
+	local worldSession = Fixture.session(worldServer, worldPlayer)
+	worldSession.profile.expansion = index
+	for slot = 1, 12 do
+		local key = fill[(slot + index) % #fill + 1]
+		worldSession.profile.placed[tostring(slot)] = key
+		worldSession.profile.collection[string.match(key, "^([^|]+)")] = { count = 1, muts = {}, stars = 1, first = 0 }
+	end
+	worldSession.profile.machines.box_printer = { level = 1, charges = 0, chargeAt = 0 }
+	local worldPlots = worldServer:requireIn("server", worldServer.services.ServerScriptService.Server.Services.Plots)
+	worldServer:asServer(function()
+		worldPlots.refresh(worldSession)
+	end)
+end
+result.world = { parts = dump(worldServer.workspace:FindFirstChild("VoidFactory")) }
+
 fs.writeFile(out, serde.encode("json", result))
-print(string.format("exported %d artifacts, %d machines, %d plot parts -> %s", #result.artifacts, #result.machines, #result.plot.parts, out))
+print(
+	string.format(
+		"exported %d artifacts, %d machines, %d plot parts -> %s",
+		#result.artifacts,
+		#result.machines,
+		#result.plot.parts,
+		out
+	)
+)

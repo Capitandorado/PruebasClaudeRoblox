@@ -109,7 +109,10 @@ return function(t)
 		t.ok(Profile.validate(session.profile), "profile still valid")
 		t.ok(isFinite(session.profile.energy) and session.profile.energy >= 0, "energy sane")
 		for key, count in session.profile.inventory do
-			t.ok(type(key) == "string" and isFinite(count) and count >= 1 and count == math.floor(count), "inventory entry " .. key)
+			t.ok(
+				type(key) == "string" and isFinite(count) and count >= 1 and count == math.floor(count),
+				"inventory entry " .. key
+			)
 		end
 		t.eq(#rt:errors(), 0, errorsText(rt))
 	end)

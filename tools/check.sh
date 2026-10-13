@@ -10,7 +10,7 @@ echo "== sourcemap"
 rojo sourcemap default.project.json --include-non-scripts -o sourcemap.json
 
 echo "== stylua"
-stylua --check src
+stylua --check src tools tests
 
 echo "== selene"
 selene src

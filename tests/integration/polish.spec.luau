@@ -27,7 +27,10 @@ return function(t)
 		rt:run(0.2, 0.1)
 		local scale = ui:FindFirstChildOfClass("UIScale").Scale
 		t.near(scale, 0.55, 1e-6, "UI scaled down for the phone")
-		t.ok(grid.FillDirectionMaxCells <= 9, "menu wraps on the phone (" .. grid.FillDirectionMaxCells .. " per column)")
+		t.ok(
+			grid.FillDirectionMaxCells <= 9,
+			"menu wraps on the phone (" .. grid.FillDirectionMaxCells .. " per column)"
+		)
 		local buttons = 0
 		for _, child in menu:GetChildren() do
 			if child:IsA("TextButton") and child.Visible then

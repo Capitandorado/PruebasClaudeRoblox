@@ -68,7 +68,12 @@ local function export(inst)
 				vAlign = enumName(child.VerticalAlignment),
 			}
 		elseif child:IsA("UIPadding") then
-			node.padding = { child.PaddingTop.Offset, child.PaddingBottom.Offset, child.PaddingLeft.Offset, child.PaddingRight.Offset }
+			node.padding = {
+				child.PaddingTop.Offset,
+				child.PaddingBottom.Offset,
+				child.PaddingLeft.Offset,
+				child.PaddingRight.Offset,
+			}
 		elseif child:IsA("UICorner") then
 			node.corner = child.CornerRadius.Offset
 		elseif child:IsA("UIStroke") then
@@ -141,19 +146,25 @@ scene("reveal_desktop", { 1280, 720 }, function(rt, player, ui)
 	rt:click(rt:findDescendant(ui, "OpenButton"))
 	rt:run(1.0, 1 / 30)
 end)
-for _, entry in {
-	{ "Inventory" },
-	{ "Collection" },
-	{ "Collection", "Odds" },
-	{ "Shop" },
-	{ "Upgrades" },
-	{ "Quests" },
-	{ "Rebirth" },
-	{ "Leaderboard" },
-	{ "Settings" },
-	{ "Admin" },
-} do
-	scene("window_" .. entry[1] .. (entry[2] and ("_" .. entry[2]) or ""), { 1280, 720 }, openWindow(entry[1], entry[2]))
+for _, entry in
+	{
+		{ "Inventory" },
+		{ "Collection" },
+		{ "Collection", "Odds" },
+		{ "Shop" },
+		{ "Upgrades" },
+		{ "Quests" },
+		{ "Rebirth" },
+		{ "Leaderboard" },
+		{ "Settings" },
+		{ "Admin" },
+	}
+do
+	scene(
+		"window_" .. entry[1] .. (entry[2] and ("_" .. entry[2]) or ""),
+		{ 1280, 720 },
+		openWindow(entry[1], entry[2])
+	)
 end
 scene("window_Inventory_phone", { 812, 375 }, openWindow("Inventory"))
 scene("window_Shop_phone", { 812, 375 }, openWindow("Shop"))

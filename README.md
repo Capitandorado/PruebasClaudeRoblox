@@ -19,7 +19,8 @@ Para publicar la experiencia: [docs/PUBLISHING.md](docs/PUBLISHING.md).
 ![Parcela al final de la partida](docs/images/plot.png)
 
 *Render aproximado generado a partir de los modelos reales del juego con
-`tools/preview` (no es una captura de Roblox). Más: [artefactos](docs/images/artifacts.png),
+`tools/preview` (no es una captura de Roblox). Más: [el mundo](docs/images/world.png),
+[artefactos](docs/images/artifacts.png),
 [máquinas](docs/images/machines.png), interfaz en [PC](docs/images/ui_hud.png),
 [inventario](docs/images/ui_inventory.png), [probabilidades](docs/images/ui_odds.png) y
 [móvil](docs/images/ui_phone.png) (maqueta aproximada: los emoji se ven como círculos).*
