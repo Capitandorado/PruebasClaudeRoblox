@@ -54,6 +54,25 @@ function C.stroke(color: Color3?, thickness: number?, transparency: number?): UI
 	})
 end
 
+-- Thick, rounded outline that scales with the UI (UIScale) instead of staying 1-2 px on
+-- big screens or turning chunky on phones. `contextual` outlines the text of a label.
+function C.outline(parent: GuiObject, color: Color3?, thickness: number?, contextual: boolean?): UIStroke
+	return C.new("UIStroke", {
+		Color = color or Theme.Outline,
+		Thickness = thickness or 3,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		ApplyStrokeMode = if contextual then Enum.ApplyStrokeMode.Contextual else Enum.ApplyStrokeMode.Border,
+		StrokeSizingMode = Enum.StrokeSizingMode.ScaledSize,
+		Parent = parent,
+	})
+end
+
+-- Text that fits its box (TextScaled) without growing past `maxSize` or below `minSize`.
+function C.fitText(label: GuiObject, maxSize: number, minSize: number?)
+	(label :: any).TextScaled = true
+	C.new("UITextSizeConstraint", { MaxTextSize = maxSize, MinTextSize = minSize or 10, Parent = label })
+end
+
 function C.padding(all: number, horizontal: number?): UIPadding
 	local h = horizontal or all
 	return C.new("UIPadding", {
@@ -78,6 +97,16 @@ function C.gradient(top: Color3, bottom: Color3, rotation: number?): UIGradient
 		Color = ColorSequence.new(top, bottom),
 		Rotation = rotation or 90,
 	})
+end
+
+-- Paints `gui` with a gradient of exactly these colours. UIGradient multiplies the
+-- background colour, so the background is set to white first (a dark panel colour would
+-- turn any gradient almost black).
+function C.paint(gui: GuiObject, top: Color3, bottom: Color3, rotation: number?): UIGradient
+	gui.BackgroundColor3 = Color3.new(1, 1, 1)
+	local gradient = C.gradient(top, bottom, rotation)
+	gradient.Parent = gui
+	return gradient
 end
 
 function C.text(props: { [string]: any }): TextLabel
@@ -143,10 +172,24 @@ function C.button(options: ButtonOptions): TextButton
 		TextSize = options.textSize or 18,
 		TextWrapped = true,
 		LayoutOrder = options.layoutOrder or 0,
+		TextStrokeColor3 = Theme.Outline,
+		TextStrokeTransparency = 0.55,
 		Children = {
 			C.corner(Theme.SmallCorner),
-			C.gradient(Color3.new(1, 1, 1), Color3.fromRGB(190, 190, 210)),
+			C.gradient(Color3.new(1, 1, 1), Color3.fromRGB(175, 175, 200)),
 		},
+	})
+	-- Dark rim + glossy top half: every button reads as a pressable "candy" shape.
+	local rim = C.outline(button, color:Lerp(Color3.new(0, 0, 0), 0.55), 2.5)
+	C.new("Frame", {
+		Name = "Gloss",
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0.82,
+		BorderSizePixel = 0,
+		Size = UDim2.new(1, -8, 0.42, 0),
+		Position = UDim2.fromOffset(4, 3),
+		Children = { C.corner(Theme.SmallCorner - 3) },
+		Parent = button,
 	})
 	local scale = C.new("UIScale", { Parent = button })
 	button:SetAttribute("BaseColor", color)
@@ -157,6 +200,7 @@ function C.button(options: ButtonOptions): TextButton
 			then Colors.Disabled
 			elseif hovered then base:Lerp(Color3.new(1, 1, 1), 0.15)
 			else base
+		rim.Color = (if disabled then Colors.Disabled else base):Lerp(Color3.new(0, 0, 0), 0.55)
 		button.TextTransparency = if disabled then 0.35 else 0
 	end
 	button.MouseEnter:Connect(function()
@@ -192,6 +236,196 @@ function C.button(options: ButtonOptions): TextButton
 	return button
 end
 
+export type CandyOptions = {
+	name: string,
+	text: string,
+	icon: string?,
+	top: Color3, -- gradient colours: light at the top, saturated at the bottom
+	bottom: Color3,
+	size: UDim2,
+	position: UDim2?,
+	anchor: Vector2?,
+	textSize: number?,
+	parent: Instance?,
+	onClick: (() -> ())?,
+}
+
+local function candyColors(button: TextButton)
+	local disabled = button:GetAttribute("Disabled") == true
+	local top = button:GetAttribute("CandyTop") :: Color3
+	local bottom = button:GetAttribute("CandyBottom") :: Color3
+	if disabled then
+		top, bottom = Color3.fromRGB(150, 150, 170), Color3.fromRGB(90, 88, 112)
+	end
+	local gradient = button:FindFirstChild("Fill") :: UIGradient
+	gradient.Color = ColorSequence.new(top, bottom)
+	local outline = bottom:Lerp(Color3.new(0, 0, 0), 0.6)
+	local rim = button:FindFirstChild("Rim") :: UIStroke
+	rim.Color = outline
+	local base = button.Parent and button.Parent:FindFirstChild("Base") :: Frame?
+	if base then
+		base.BackgroundColor3 = outline
+	end
+	local label = button:FindFirstChild("Label") :: TextLabel?
+	if label then
+		label.TextTransparency = if disabled then 0.25 else 0
+		local stroke = label:FindFirstChildOfClass("UIStroke")
+		if stroke then
+			stroke.Color = outline
+		end
+	end
+end
+
+-- "Jelly" button for the main actions. Structure (holder keeps the idle pulse separate from
+-- the press scale, see UI/Idle):
+--   <name>Holder (Frame)  ── Base (darker shadow the button sinks into when pressed)
+--                         └─ <name> (TextButton, white background tinted by:)
+--                              UICorner (very round), UIStroke "Rim" (thick dark border,
+--                              scales with the UI), UIGradient "Fill" (top → bottom colours),
+--                              Gloss (soft white highlight), Glint (shine band, UI/Idle),
+--                              Icon + Label (cartoon font, thick text outline, TextScaled)
+-- C.setButton(button, text, enabled, color) keeps working: text goes to the label, `color`
+-- recolours the gradient.
+function C.candyButton(options: CandyOptions): (Frame, TextButton, TextLabel)
+	local radius = UDim.new(0, Theme.CandyCorner)
+	local holder = C.new("Frame", {
+		Name = options.name .. "Holder",
+		BackgroundTransparency = 1,
+		Size = options.size,
+		Position = options.position or UDim2.new(),
+		AnchorPoint = options.anchor or Vector2.zero,
+	})
+	C.new("Frame", {
+		Name = "Base",
+		BorderSizePixel = 0,
+		Size = UDim2.fromScale(1, 1),
+		Position = UDim2.fromOffset(0, 5),
+		Children = { C.new("UICorner", { CornerRadius = radius }) },
+		Parent = holder,
+	})
+	local button: TextButton = C.new("TextButton", {
+		Name = options.name,
+		Text = "",
+		AutoButtonColor = false,
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		Size = UDim2.fromScale(1, 1),
+		Children = { C.new("UICorner", { CornerRadius = radius }) },
+		Parent = holder,
+	})
+	button:SetAttribute("Candy", true)
+	button:SetAttribute("CandyTop", options.top)
+	button:SetAttribute("CandyBottom", options.bottom)
+	C.new("UIGradient", { Name = "Fill", Rotation = 90, Parent = button })
+	local rim = C.outline(button, nil, 3.5)
+	rim.Name = "Rim"
+	C.new("Frame", {
+		Name = "Gloss",
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0.6,
+		BorderSizePixel = 0,
+		Size = UDim2.new(1, -14, 0.42, 0),
+		Position = UDim2.fromOffset(7, 4),
+		ZIndex = 2,
+		Children = {
+			C.new("UICorner", { CornerRadius = UDim.new(0, Theme.CandyCorner - 5) }),
+			C.new("UIGradient", {
+				Rotation = 90,
+				Transparency = NumberSequence.new(0.2, 1),
+			}),
+		},
+		Parent = button,
+	})
+	-- A diagonal band of light, parked off the left edge; UI/Idle slides it across.
+	C.new("Frame", {
+		Name = "Glint",
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BorderSizePixel = 0,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 3,
+		Children = {
+			C.new("UICorner", { CornerRadius = radius }),
+			C.new("UIGradient", {
+				Rotation = 20,
+				Offset = Vector2.new(-1, 0),
+				Transparency = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 1),
+					NumberSequenceKeypoint.new(0.4, 1),
+					NumberSequenceKeypoint.new(0.5, 0.35),
+					NumberSequenceKeypoint.new(0.6, 1),
+					NumberSequenceKeypoint.new(1, 1),
+				}),
+			}),
+		},
+		Parent = button,
+	})
+	local textLeft = 0
+	if options.icon then
+		C.text({
+			Name = "Icon",
+			Text = options.icon,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Size = UDim2.new(0, 56, 1, -10),
+			Position = UDim2.fromOffset(8, 4),
+			ZIndex = 4,
+			Parent = button,
+		})
+		C.fitText(button:FindFirstChild("Icon") :: TextLabel, 40, 14)
+		textLeft = 56
+	end
+	local label = C.text({
+		Name = "Label",
+		Text = options.text,
+		FontFace = Theme.Fonts.Title,
+		TextColor3 = Color3.new(1, 1, 1),
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Size = UDim2.new(1, -(textLeft + 16), 1, -14),
+		Position = UDim2.fromOffset(textLeft + 8, 5),
+		ZIndex = 4,
+		Parent = button,
+	})
+	C.fitText(label, options.textSize or 30, 12)
+	C.outline(label, nil, 3, true)
+	candyColors(button)
+
+	local press = C.new("UIScale", { Name = "Press", Parent = button })
+	button.MouseEnter:Connect(function()
+		C.tween(press, 0.12, { Scale = 1.05 }, Enum.EasingStyle.Back)
+	end)
+	button.MouseLeave:Connect(function()
+		C.tween(press, 0.12, { Scale = 1 })
+		C.tween(button, 0.08, { Position = UDim2.new() })
+	end)
+	-- Pressing squashes the button and sinks it into its darker base; releasing springs back.
+	button.MouseButton1Down:Connect(function()
+		C.tween(press, 0.07, { Scale = 0.95 })
+		C.tween(button, 0.07, { Position = UDim2.fromOffset(0, 4) })
+	end)
+	button.MouseButton1Up:Connect(function()
+		C.tween(press, 0.25, { Scale = 1 }, Enum.EasingStyle.Back)
+		C.tween(button, 0.15, { Position = UDim2.new() }, Enum.EasingStyle.Back)
+	end)
+	button:GetAttributeChangedSignal("Disabled"):Connect(function()
+		candyColors(button)
+	end)
+	for _, attribute in { "CandyTop", "CandyBottom" } do
+		button:GetAttributeChangedSignal(attribute):Connect(function()
+			candyColors(button)
+		end)
+	end
+	if options.onClick then
+		local onClick = options.onClick
+		button.Activated:Connect(function()
+			if button:GetAttribute("Disabled") ~= true then
+				onClick()
+			end
+		end)
+	end
+	if options.parent then
+		holder.Parent = options.parent
+	end
+	return holder, button, label
+end
+
 -- Connects a click handler that respects the "Disabled" attribute.
 function C.onClick(button: TextButton, handler: () -> ())
 	button.Activated:Connect(function()
@@ -202,11 +436,22 @@ function C.onClick(button: TextButton, handler: () -> ())
 end
 
 function C.setButton(button: TextButton, text: string?, enabled: boolean?, color: Color3?)
+	local candy = button:GetAttribute("Candy") == true
 	if text then
-		button.Text = text
+		local label = candy and button:FindFirstChild("Label") :: TextLabel?
+		if label then
+			label.Text = text
+		else
+			button.Text = text
+		end
 	end
 	if color then
-		button:SetAttribute("BaseColor", color)
+		if candy then
+			button:SetAttribute("CandyTop", color:Lerp(Color3.new(1, 1, 1), 0.35))
+			button:SetAttribute("CandyBottom", color:Lerp(Color3.new(0, 0, 0), 0.12))
+		else
+			button:SetAttribute("BaseColor", color)
+		end
 	end
 	if enabled ~= nil then
 		button:SetAttribute("Disabled", not enabled)

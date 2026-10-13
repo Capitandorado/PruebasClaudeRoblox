@@ -77,7 +77,28 @@ local function export(inst)
 		elseif child:IsA("UICorner") then
 			node.corner = child.CornerRadius.Offset
 		elseif child:IsA("UIStroke") then
-			node.stroke = { color = color(child.Color), thickness = child.Thickness, t = child.Transparency }
+			local stroke = { color = color(child.Color), thickness = child.Thickness, t = child.Transparency }
+			if child.ApplyStrokeMode == roblox.Enum.ApplyStrokeMode.Contextual and node.text then
+				node.textStroke = stroke
+			else
+				node.stroke = stroke
+			end
+		elseif child:IsA("UIGradient") then
+			local colors, alphas = {}, {}
+			for _, point in child.Color.Keypoints do
+				table.insert(colors, { point.Time, color(point.Value) })
+			end
+			for _, point in child.Transparency.Keypoints do
+				table.insert(alphas, { point.Time, point.Value })
+			end
+			node.gradient = {
+				colors = colors,
+				transparency = alphas,
+				rotation = child.Rotation,
+				offset = { child.Offset.X, child.Offset.Y },
+			}
+		elseif child:IsA("UITextSizeConstraint") then
+			node.maxText = child.MaxTextSize
 		elseif child:IsA("UIScale") then
 			node.scale = child.Scale
 		elseif child:IsA("UISizeConstraint") then

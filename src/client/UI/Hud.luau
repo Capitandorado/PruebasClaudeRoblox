@@ -25,6 +25,7 @@ local Sound = require(Client.Core.Sound)
 local Box = require(Client.Controllers.Box)
 local App = require(script.Parent.App)
 local Goals = require(script.Parent.Goals)
+local Idle = require(script.Parent.Idle)
 local Theme = require(script.Parent.Theme)
 local C = require(script.Parent.Components)
 
@@ -100,7 +101,7 @@ local function buildTopBar(parent: Frame)
 		Parent = bar,
 	})
 	refs.energyPill = pill
-	C.gradient(Color3.fromRGB(60, 50, 110), Color3.fromRGB(28, 24, 52)).Parent = pill
+	C.paint(pill, Color3.fromRGB(60, 50, 110), Color3.fromRGB(28, 24, 52))
 	C.text({
 		Name = "Icon",
 		Text = "⚡",
@@ -113,22 +114,27 @@ local function buildTopBar(parent: Frame)
 	refs.energy = C.text({
 		Name = "Energy",
 		Text = "0",
-		FontFace = Theme.Fonts.Bold,
-		TextSize = 32,
+		FontFace = Theme.Fonts.Number,
 		TextColor3 = Colors.Text,
 		Size = UDim2.new(1, -64, 0, 38),
 		Position = UDim2.fromOffset(54, 4),
 		Parent = pill,
 	})
+	-- Big numbers shrink to fit instead of overflowing; the thick outline keeps them readable
+	-- over any background.
+	C.fitText(refs.energy, 36, 16)
+	C.outline(refs.energy, Theme.Outline, 3, true)
 	refs.eps = C.text({
 		Name = "Eps",
 		Text = "+0/s",
-		TextSize = 17,
+		FontFace = Theme.Fonts.Number,
 		TextColor3 = Colors.Good,
 		Size = UDim2.new(1, -64, 0, 20),
 		Position = UDim2.fromOffset(56, 40),
 		Parent = pill,
 	})
+	C.fitText(refs.eps, 18, 10)
+	C.outline(refs.eps, Theme.Outline, 2, true)
 	refs.boostPill, refs.boost =
 		infoPill(bar, "BoostPill", 2, 360, Color3.fromRGB(255, 225, 120), Color3.fromRGB(70, 50, 10))
 	refs.effectsPill, refs.effects = infoPill(bar, "EffectsPill", 3, 500, Colors.TextDim)
@@ -142,62 +148,28 @@ end
 
 -- Gold STORE button next to the Energy counter (Robux passes, boosts and codes).
 local function buildStoreButton(parent: Frame)
-	local button = C.new("TextButton", {
-		Name = "StoreButton",
-		Text = "",
-		AutoButtonColor = false,
-		AnchorPoint = Vector2.new(0, 0),
-		Position = UDim2.new(0.5, 158, 0, 8),
-		Size = UDim2.fromOffset(96, 64),
-		BackgroundColor3 = Color3.fromRGB(255, 190, 60),
-		Children = {
-			C.corner(Theme.Corner),
-			C.gradient(Color3.fromRGB(255, 225, 120), Color3.fromRGB(230, 140, 30)),
-			C.stroke(Color3.fromRGB(255, 240, 180), 2, 0.2),
-		},
-		Parent = parent,
+	local holder, button, label = C.candyButton({
+		name = "StoreButton",
+		text = "STORE",
+		icon = "🛒",
+		top = Color3.fromRGB(255, 236, 110),
+		bottom = Color3.fromRGB(255, 136, 20),
+		size = UDim2.fromOffset(104, 68),
+		position = UDim2.new(0.5, 158, 0, 6),
+		textSize = 20,
+		parent = parent,
+		onClick = function()
+			App.toggleWindow("Store")
+		end,
 	})
-	C.text({
-		Name = "Icon",
-		Text = "🛒",
-		TextSize = 26,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		Size = UDim2.new(1, 0, 0, 34),
-		Position = UDim2.fromOffset(0, 4),
-		Parent = button,
-	})
-	C.text({
-		Name = "Label",
-		Text = "STORE",
-		FontFace = Theme.Fonts.Bold,
-		TextSize = 15,
-		TextColor3 = Color3.fromRGB(60, 30, 0),
-		TextXAlignment = Enum.TextXAlignment.Center,
-		Size = UDim2.new(1, 0, 0, 20),
-		Position = UDim2.fromOffset(0, 38),
-		Parent = button,
-	})
-	local scale = C.new("UIScale", { Parent = button })
-	button.MouseEnter:Connect(function()
-		C.tween(scale, 0.1, { Scale = 1.06 })
-	end)
-	button.MouseLeave:Connect(function()
-		C.tween(scale, 0.1, { Scale = 1 })
-	end)
-	button.Activated:Connect(function()
-		App.toggleWindow("Store")
-	end)
-	-- A gentle shine every few seconds draws the eye without being noisy.
-	task.spawn(function()
-		while button.Parent do
-			task.wait(6)
-			if App.currentWindow() == nil then
-				C.tween(scale, 0.15, { Scale = 1.1 })
-				task.wait(0.16)
-				C.tween(scale, 0.25, { Scale = 1 }, Enum.EasingStyle.Back)
-			end
-		end
-	end)
+	-- Icon on top, word underneath (the button is tall and narrow).
+	local icon = button:FindFirstChild("Icon") :: TextLabel
+	icon.Size = UDim2.new(1, 0, 0.56, 0)
+	icon.Position = UDim2.fromOffset(0, 4)
+	label.Size = UDim2.new(1, -10, 0.36, 0)
+	label.Position = UDim2.new(0, 5, 0.56, 0)
+	Idle.breathe(holder, 0.05, 1.6)
+	Idle.glint(button)
 	refs.storeButton = button
 end
 
@@ -416,14 +388,16 @@ local function buildBoxPanel(parent: Frame)
 	local chipLayout = C.list(Enum.FillDirection.Horizontal, 6, Enum.HorizontalAlignment.Center)
 	chipLayout.Parent = chips
 	refs.chips = chips
-	refs.openButton = C.button({
+	local openHolder, openButton, openLabel = C.candyButton({
 		name = "OpenButton",
-		text = "OPEN BOX",
-		color = Colors.Accent2,
-		size = UDim2.fromOffset(300, 72),
-		position = UDim2.new(0.5, -40, 0, 38),
+		text = "OPEN",
+		icon = "🎁",
+		top = Color3.fromRGB(150, 255, 120),
+		bottom = Color3.fromRGB(20, 170, 70),
+		size = UDim2.fromOffset(300, 78),
+		position = UDim2.new(0.5, -40, 0, 34),
 		anchor = Vector2.new(0.5, 0),
-		textSize = 26,
+		textSize = 36,
 		parent = panel,
 		onClick = function()
 			if Box.auto then
@@ -432,45 +406,54 @@ local function buildBoxPanel(parent: Frame)
 			task.spawn(Box.open, Hud.selectedMachine)
 		end,
 	})
-	refs.openButton.TextYAlignment = Enum.TextYAlignment.Top
-	C.padding(8).Parent = refs.openButton
+	refs.openButton = openButton
+	openLabel.Size = UDim2.new(1, -76, 0, 40)
+	openLabel.Position = UDim2.fromOffset(64, 4)
 	refs.openSub = C.text({
 		Name = "Sub",
 		Text = "",
-		TextSize = 15,
-		TextColor3 = Color3.fromRGB(235, 225, 255),
+		FontFace = Theme.Fonts.Number,
+		TextColor3 = Color3.new(1, 1, 1),
 		TextXAlignment = Enum.TextXAlignment.Center,
-		Size = UDim2.new(1, 0, 0, 18),
-		Position = UDim2.new(0, 0, 1, -34),
-		Parent = refs.openButton,
+		Size = UDim2.new(1, -76, 0, 18),
+		Position = UDim2.fromOffset(64, 44),
+		ZIndex = 4,
+		Parent = openButton,
 	})
+	C.fitText(refs.openSub, 16, 10)
+	C.outline(refs.openSub, Color3.fromRGB(10, 70, 30), 2, true)
 	local bar, setBar = C.progress({
 		Name = "Charge",
-		Size = UDim2.new(1, -20, 0, 8),
-		Position = UDim2.new(0, 10, 1, -12),
-		Parent = refs.openButton,
+		Size = UDim2.new(1, -84, 0, 7),
+		Position = UDim2.new(0, 68, 1, -12),
+		ZIndex = 4,
+		Parent = openButton,
 	})
 	refs.chargeBar = bar
 	refs.setCharge = setBar
-	refs.autoButton = C.button({
+	Idle.breathe(openHolder, 0.05, 1.8)
+	Idle.glint(openButton, 3, 5.5)
+	local _, autoButton = C.candyButton({
 		name = "AutoButton",
 		text = "AUTO\nOFF",
-		color = Colors.PanelLight,
-		size = UDim2.fromOffset(84, 72),
-		position = UDim2.new(0.5, 118, 0, 38),
-		textSize = 17,
+		top = Color3.fromRGB(140, 150, 210),
+		bottom = Color3.fromRGB(64, 66, 130),
+		size = UDim2.fromOffset(84, 78),
+		position = UDim2.new(0.5, 118, 0, 34),
+		textSize = 20,
 		parent = panel,
 		onClick = function()
 			Box.setAuto(not Box.auto, Hud.selectedMachine)
 			Sound.play("UIClick")
 		end,
 	})
+	refs.autoButton = autoButton
 	Box.AutoChanged:Connect(function(enabled)
 		C.setButton(
 			refs.autoButton,
 			if enabled then "AUTO\nON" else "AUTO\nOFF",
 			true,
-			if enabled then Colors.Good else Colors.PanelLight
+			if enabled then Color3.fromRGB(60, 210, 110) else Color3.fromRGB(90, 96, 160)
 		)
 	end)
 end
@@ -649,7 +632,7 @@ function Hud.refreshBoxPanel()
 	local production = Store.production()
 	local state = profile.machines[machineId]
 	if not state then
-		C.setButton(button, "OPEN BOX", false)
+		C.setButton(button, "OPEN", false)
 		return
 	end
 	local cap = State.chargeCap(profile, machineId)
@@ -663,15 +646,15 @@ function Hud.refreshBoxPanel()
 		charges = math.min(cap, state.charges + math.floor(elapsed / interval))
 		progress = if charges >= cap then 1 else (elapsed % interval) / interval
 	end
-	local title = if Box.busy then "OPENING..." else "OPEN BOX"
+	local title = if Box.busy then "..." else "OPEN"
 	if charges >= 1 then
-		refs.openSub.Text = string.format("%d/%d ready", charges, cap)
+		refs.openSub.Text = string.format("📦 %d/%d", charges, cap)
 		C.setButton(button, title, not Box.busy)
 	elseif cost > 0 then
-		refs.openSub.Text = "⚡ " .. Format.number(cost) .. " per box"
+		refs.openSub.Text = "⚡" .. Format.number(cost)
 		C.setButton(button, title, not Box.busy and profile.energy >= cost)
 	else
-		refs.openSub.Text = string.format("Next box in %s", Format.duration((1 - progress) * interval))
+		refs.openSub.Text = "⏳ " .. Format.duration((1 - progress) * interval)
 		C.setButton(button, title, false)
 	end
 	refs.chargeBar.Visible = cap > 0

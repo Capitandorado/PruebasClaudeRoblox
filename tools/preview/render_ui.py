@@ -141,6 +141,41 @@ def intersect(a, b):
     return (x0, y0, max(0, x1 - x0), max(0, y1 - y0))
 
 
+def sample(points, t):
+    """Linear interpolation in a [(time, value), ...] keypoint list."""
+    if t <= points[0][0]:
+        return points[0][1]
+    for (t0, v0), (t1, v1) in zip(points, points[1:]):
+        if t <= t1:
+            f = 0 if t1 == t0 else (t - t0) / (t1 - t0)
+            if isinstance(v0, list):
+                return [a + (b - a) * f for a, b in zip(v0, v1)]
+            return v0 + (v1 - v0) * f
+    return points[-1][1]
+
+
+def gradient_fill(node, w, h, base_alpha):
+    """RGBA image of the node's background tinted by its UIGradient (vertical or horizontal)."""
+    g = node["gradient"]
+    w, h = max(1, int(w)), max(1, int(h))
+    vertical = abs((g["rotation"] % 180) - 90) < 45
+    length = h if vertical else w
+    offset = g["offset"][1] if vertical else g["offset"][0]
+    out = Image.new("RGBA", (w, h))
+    px = ImageDraw.Draw(out)
+    bg = node["bg"]
+    for i in range(length):
+        t = min(max(i / max(1, length - 1) - offset, 0), 1)
+        c = sample(g["colors"], t)
+        a = 1 - sample(g["transparency"], t)
+        fill = rgb([bg[0] * c[0], bg[1] * c[1], bg[2] * c[2]], base_alpha * a)
+        if vertical:
+            px.line([(0, i), (w, i)], fill=fill)
+        else:
+            px.line([(i, 0), (i, h)], fill=fill)
+    return out
+
+
 def draw_node(img, node, scale):
     x, y, w, h = node["_rect"]
     clip = node["_clip"]
@@ -154,6 +189,23 @@ def draw_node(img, node, scale):
     if node["class"] == "ViewportFrame":
         d.rounded_rectangle(box, radius=radius, fill=(12, 10, 26, 255), outline=(90, 80, 160, 255))
         d.text((box[0] + 6, box[1] + 4), "3D preview", fill=(150, 140, 200, 255), font=font(11 * scale))
+    elif node.get("bgT", 1) < 0.99 and node.get("gradient"):
+        g = node["gradient"]
+        # A gradient pushed fully off the frame (the parked glint) shows nothing.
+        hidden = abs(g["offset"][0]) >= 1 or abs(g["offset"][1]) >= 1
+        if not hidden:
+            fill_img = gradient_fill(node, box[2] - box[0] + 1, box[3] - box[1] + 1, 1 - node["bgT"])
+            mask = Image.new("L", fill_img.size, 0)
+            ImageDraw.Draw(mask).rounded_rectangle(
+                [0, 0, fill_img.size[0] - 1, fill_img.size[1] - 1], radius=radius, fill=255
+            )
+            layer.paste(fill_img, (int(box[0]), int(box[1])), mask)
+        stroke = node.get("stroke")
+        if stroke:
+            d.rounded_rectangle(
+                box, radius=radius, outline=rgb(stroke["color"], 1 - stroke["t"]),
+                width=max(1, int(stroke["thickness"] * scale)),
+            )
     elif node.get("bgT", 1) < 0.99:
         fill = rgb(node["bg"], 1 - node["bgT"])
         stroke = node.get("stroke")
@@ -168,6 +220,8 @@ def draw_node(img, node, scale):
         size = node.get("textSize", 14)
         if node.get("textScaled"):
             size = h * 0.7
+            if node.get("maxText"):
+                size = min(size, node["maxText"])
         f = font(size * scale)
         lines = clean(text).split("\n")
         if node.get("wrapped"):
@@ -190,7 +244,15 @@ def draw_node(img, node, scale):
         for line in lines:
             tw = d.textlength(line, font=f)
             tx = box[0] + {"Left": 0, "Center": (w * scale - tw) / 2, "Right": w * scale - tw}.get(node.get("xAlign", "Center"), 0)
-            d.text((tx, ty), line, fill=rgb(node["textColor"], 1 - node.get("textT", 0)), font=f)
+            ts = node.get("textStroke")
+            if ts:
+                d.text(
+                    (tx, ty), line, fill=rgb(node["textColor"], 1 - node.get("textT", 0)), font=f,
+                    stroke_width=max(1, int(ts["thickness"] * scale * 0.8)),
+                    stroke_fill=rgb(ts["color"], 1 - ts["t"]),
+                )
+            else:
+                d.text((tx, ty), line, fill=rgb(node["textColor"], 1 - node.get("textT", 0)), font=f)
             ty += line_h
     cx0, cy0 = int(visible[0] * scale), int(visible[1] * scale)
     cx1, cy1 = int((visible[0] + visible[2]) * scale), int((visible[1] + visible[3]) * scale)

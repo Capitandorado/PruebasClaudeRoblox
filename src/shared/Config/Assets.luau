@@ -15,10 +15,14 @@ Assets.Textures = {
 }
 
 -- Font families from content/fonts/families (also verified in the manifest).
+-- Cartoon fonts: Luckiest Guy for titles and big buttons, Fredoka One for numbers and
+-- button labels. (Gotham is no longer shipped: Enum.Font.GothamBlack renders Montserrat.)
 Assets.Fonts = {
 	Display = "rbxasset://fonts/families/Michroma.json",
 	UI = "rbxasset://fonts/families/BuilderSans.json",
 	Mono = "rbxasset://fonts/families/RobotoMono.json",
+	Title = "rbxasset://fonts/families/LuckiestGuy.json",
+	Cartoon = "rbxasset://fonts/families/FredokaOne.json",
 }
 
 return Assets

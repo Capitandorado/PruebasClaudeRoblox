@@ -52,7 +52,7 @@ function Goals.current(profile: any, now: number): Goal?
 	if profile.stats.boxesOpened == 0 then
 		return {
 			id = "open",
-			text = "👋 Welcome! Press OPEN BOX to fabricate your first artifact.",
+			text = "👋 Welcome! Press the green 🎁 OPEN button to make your first artifact.",
 			highlight = "OpenButton",
 		}
 	end
@@ -66,7 +66,7 @@ function Goals.current(profile: any, now: number): Goal?
 				highlight = "InventoryButton",
 			}
 		end
-		return { id = "open", text = "Press OPEN BOX to get an artifact to place.", highlight = "OpenButton" }
+		return { id = "open", text = "Press 🎁 OPEN to get an artifact to place.", highlight = "OpenButton" }
 	end
 	-- Rewards waiting to be claimed.
 	if (profile.daily.claims > 0 or profile.stats.boxesOpened >= 10) and Daily.status(profile, now).available then

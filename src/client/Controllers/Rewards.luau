@@ -104,7 +104,7 @@ function Rewards.showWelcome(data: any, onClose: (() -> ())?)
 		ZIndex = 31,
 		Parent = backdrop,
 	})
-	C.gradient(Colors.Accent:Lerp(Colors.Panel, 0.8), Colors.Panel).Parent = panel
+	C.paint(panel, Colors.Accent:Lerp(Colors.Panel, 0.8), Colors.Panel)
 	local function line(name: string, text: string, y: number, height: number, props: { [string]: any }?)
 		local label = C.text({
 			Name = name,

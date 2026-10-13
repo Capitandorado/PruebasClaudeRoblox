@@ -234,7 +234,7 @@ local function showCard(result: any)
 		stroke.Color = color
 		stroke.Thickness = 3
 	end
-	C.gradient(color:Lerp(Colors.Panel, 0.75), Colors.Panel).Parent = card
+	C.paint(card, color:Lerp(Colors.Panel, 0.75), Colors.Panel)
 	C.text({
 		Name = "Rarity",
 		Text = string.upper(rarity and rarity.id or "?"),

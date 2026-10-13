@@ -275,44 +275,67 @@ local function pulsePart(slot: number, ring: BasePart): BasePart
 	return part
 end
 
--- Every few seconds a small "+⚡X" rises from the nearest producing pedestals.
-local GAIN_EVERY = 3
-local GAIN_RANGE = 70
-local GAIN_MAX = 12
+-- Floating "+1.5K ⚡" popups: on every production tick each nearby producing pedestal
+-- throws its gain into the air (pop, float up, fade). Billboards are pooled and reused, and
+-- only the closest pedestals show them, so a full plot stays cheap and readable.
+local GAIN_EVERY = 1 -- production ticks between popups
+local GAIN_RANGE = 70 -- studs from the camera
+local GAIN_MAX = 8 -- pedestals per tick
+local GAIN_LIFETIME = 1.1
 local pulseCount = 0
+local gainPool: { BillboardGui } = {}
+local gainRandom = Random.new()
 
-local function floatGain(hitbox: BasePart, amount: number)
+local function newGainGui(): BillboardGui
 	local gui = C.new("BillboardGui", {
 		Name = "Gain",
-		Adornee = hitbox,
-		Size = UDim2.fromScale(5, 1.3),
-		StudsOffsetWorldSpace = Vector3.new(0, 2.5, 0),
+		Size = UDim2.fromScale(5, 1.4),
 		LightInfluence = 0,
+		AlwaysOnTop = false,
 		MaxDistance = GAIN_RANGE,
 		ResetOnSpawn = false,
-		Parent = pulseFolder,
+		Enabled = false,
 	})
 	local label = C.text({
 		Name = "Text",
-		Text = "+⚡" .. Format.number(amount),
-		FontFace = Theme.Fonts.Bold,
-		TextScaled = true,
+		Text = "",
+		FontFace = Theme.Fonts.Number,
 		TextColor3 = Colors.Energy,
-		TextStrokeTransparency = 0.4,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Size = UDim2.fromScale(1, 1),
 		Parent = gui,
 	})
-	TweenService
-		:Create(gui, TweenInfo.new(1.3, Enum.EasingStyle.Quad), { StudsOffsetWorldSpace = Vector3.new(0, 5, 0) })
-		:Play()
-	TweenService:Create(
-		label,
-		TweenInfo.new(1.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-		{ TextTransparency = 1, TextStrokeTransparency = 1 }
-	):Play()
-	task.delay(1.35, function()
-		gui:Destroy()
+	label.TextScaled = true
+	C.outline(label, Color3.fromRGB(70, 40, 0), 2.5, true)
+	C.new("UIScale", { Name = "Pop", Parent = label })
+	return gui
+end
+
+local function floatGain(hitbox: BasePart, amount: number)
+	local gui = table.remove(gainPool) or newGainGui()
+	local label = gui:FindFirstChild("Text") :: TextLabel
+	local pop = label:FindFirstChild("Pop") :: UIScale
+	local stroke = label:FindFirstChildOfClass("UIStroke") :: UIStroke
+	local x = gainRandom:NextNumber(-0.9, 0.9)
+	gui.Adornee = hitbox
+	gui.StudsOffsetWorldSpace = Vector3.new(x, 2.6, 0)
+	gui.Parent = pulseFolder
+	gui.Enabled = true
+	label.Text = "+" .. Format.number(amount) .. " ⚡"
+	label.TextTransparency = 0
+	stroke.Transparency = 0
+	-- Pop in, then drift up while fading out.
+	pop.Scale = 0.3
+	C.tween(pop, 0.22, { Scale = 1 }, Enum.EasingStyle.Back)
+	C.tween(gui, GAIN_LIFETIME, { StudsOffsetWorldSpace = Vector3.new(x * 1.4, 5.2, 0) }, Enum.EasingStyle.Quad)
+	task.delay(GAIN_LIFETIME * 0.45, function()
+		C.tween(label, GAIN_LIFETIME * 0.55, { TextTransparency = 1 })
+		C.tween(stroke, GAIN_LIFETIME * 0.55, { Transparency = 1 })
+	end)
+	task.delay(GAIN_LIFETIME + 0.05, function()
+		gui.Enabled = false
+		gui.Adornee = nil
+		table.insert(gainPool, gui)
 	end)
 end
 

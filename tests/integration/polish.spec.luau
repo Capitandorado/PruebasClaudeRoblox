@@ -73,7 +73,7 @@ return function(t)
 		local function glowOn(name)
 			return rt:findDescendant(ui, name):FindFirstChild("GuideGlow") ~= nil
 		end
-		t.ok(bar.Visible and string.find(bar.Label.Text, "OPEN BOX", 1, true) ~= nil, "step 1: " .. bar.Label.Text)
+		t.ok(bar.Visible and string.find(bar.Label.Text, "OPEN", 1, true) ~= nil, "step 1: " .. bar.Label.Text)
 		t.ok(glowOn("OpenButton"), "OPEN BOX glows")
 		local opened = Fixture.request(rt, player, "OpenBox", "starter_fabricator")
 		rt:run(0.5, 0.1)
@@ -133,6 +133,76 @@ return function(t)
 		t.eq(window.Visible, true, "still visible while it shrinks away")
 		rt:run(0.3, 0.05)
 		t.eq(window.Visible, false, "hidden after the close animation")
+		t.eq(#rt:errors(), 0, errorsText(rt))
+	end)
+
+	t.test("candy buttons: thick scalable outline, gradient, idle pulse and glint", function()
+		local rt = Fixture.server({ isStudio = true })
+		local player = Fixture.join(rt, { userId = 1007, noClient = false })
+		rt:run(1, 0.1)
+		local ui = player.PlayerGui.VoidFactoryUI
+		local open = rt:findDescendant(ui, "OpenButton")
+		local rim = open:FindFirstChild("Rim")
+		t.eq(rim.ApplyStrokeMode, roblox.Enum.ApplyStrokeMode.Border)
+		t.eq(rim.StrokeSizingMode, roblox.Enum.StrokeSizingMode.ScaledSize, "outline scales with the UI")
+		t.ok(rim.Thickness >= 3, "thick outline")
+		t.eq(open.Fill.Rotation, 90, "vertical gradient")
+		t.eq(open.Label.Text, "OPEN", "short label")
+		t.eq(open.Text, "", "text lives in the outlined label")
+		local labelStroke = open.Label:FindFirstChildOfClass("UIStroke")
+		t.eq(labelStroke.ApplyStrokeMode, roblox.Enum.ApplyStrokeMode.Contextual, "text outline")
+		t.ok(open.Label:FindFirstChildOfClass("UITextSizeConstraint") ~= nil, "TextScaled with a size cap")
+		-- Idle: the holder breathes between 1 and 1.05 and the glint sweeps across.
+		local breathe = open.Parent:FindFirstChild("Breathe")
+		local biggest = 1
+		local sweptGlint = false
+		for _ = 1, 80 do
+			rt:run(0.1, 0.05)
+			biggest = math.max(biggest, breathe.Scale)
+			if open.Glint.UIGradient.Offset.X > -0.99 then
+				sweptGlint = true
+			end
+		end
+		t.ok(biggest > 1.03 and biggest <= 1.0501, "breathes up to 1.05 (" .. biggest .. ")")
+		t.ok(sweptGlint, "the glint passed over the button")
+		local store = rt:findDescendant(ui, "StoreButton")
+		t.ok(store.Parent:FindFirstChild("Breathe") ~= nil, "STORE breathes too")
+		t.eq(#rt:errors(), 0, errorsText(rt))
+	end)
+
+	t.test("floating production popups reuse a small pool of billboards", function()
+		local rt = Fixture.server({ isStudio = true })
+		local player = Fixture.join(rt, { userId = 1008, noClient = false })
+		rt:run(1, 0.1)
+		for slot, key in { "ion_battery||1", "scrap_cube||1", "glow_shard||1" } do
+			Fixture.request(rt, player, "Admin", "give", key)
+			Fixture.request(rt, player, "Place", slot, key)
+		end
+		local session = Fixture.session(rt, player)
+		local spawn = rt:find(rt.workspace, "VoidFactory.Plots.Plot_" .. session.plot .. ".Spawn")
+		rt.camera.CFrame = roblox.CFrame.new(spawn.Position + roblox.Vector3.new(0, 12, 0))
+		local most = 0
+		local sample = nil
+		for _ = 1, 100 do
+			rt:run(0.1, 0.05)
+			local enabled = 0
+			for _, child in rt.workspace.FactoryPulses:GetChildren() do
+				if child.Name == "Gain" and child.Enabled then
+					enabled += 1
+					sample = child
+				end
+			end
+			most = math.max(most, enabled)
+		end
+		t.ok(most >= 3, "a popup per producing pedestal (" .. most .. ")")
+		local total = 0
+		for _, child in rt.workspace.FactoryPulses:GetChildren() do
+			if child.Name == "Gain" then
+				total += 1
+			end
+		end
+		t.ok(total <= 8, "pooled: " .. total .. " billboards after 10 seconds")
+		t.ok(sample ~= nil and string.find(sample.Text.Text, "⚡", 1, true) ~= nil, "format +X ⚡")
 		t.eq(#rt:errors(), 0, errorsText(rt))
 	end)
 

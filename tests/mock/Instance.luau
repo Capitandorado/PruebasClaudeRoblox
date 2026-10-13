@@ -198,7 +198,9 @@ local function defaultValue(className, key, prop)
 			break
 		end
 	end
-	if value == nil then
+	-- Generic defaults are primitives: never use them for typed properties (for example
+	-- UIGradient.Transparency is a NumberSequence, not a number).
+	if value == nil and prop.category == "Primitive" then
 		value = GenericDefaults[key]
 	end
 	if value == nil then

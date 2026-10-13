@@ -25,14 +25,23 @@ Theme.Colors = {
 }
 
 Theme.Fonts = {
-	Display = Font.new(Assets.Fonts.Display, Enum.FontWeight.Regular),
-	Bold = Font.new(Assets.Fonts.UI, Enum.FontWeight.Heavy),
+	-- Window titles, banners, rarity names: chunky cartoon capitals.
+	Display = Font.new(Assets.Fonts.Title, Enum.FontWeight.Regular),
+	Title = Font.new(Assets.Fonts.Title, Enum.FontWeight.Regular),
+	-- Numbers, buttons and names: round and bold.
+	Bold = Font.new(Assets.Fonts.Cartoon, Enum.FontWeight.Regular),
+	Number = Font.new(Assets.Fonts.Cartoon, Enum.FontWeight.Regular),
+	-- Body text stays in a plain readable font.
 	SemiBold = Font.new(Assets.Fonts.UI, Enum.FontWeight.Bold),
 	Regular = Font.new(Assets.Fonts.UI, Enum.FontWeight.Medium),
 }
 
-Theme.Corner = 12
-Theme.SmallCorner = 8
+-- Thick dark outline for text and borders ("candy" style).
+Theme.Outline = Color3.fromRGB(24, 12, 40)
+
+Theme.Corner = 14
+Theme.SmallCorner = 10
+Theme.CandyCorner = 18
 -- Design resolution: the whole UI is authored for this size and scaled with UIScale.
 Theme.DesignSize = Vector2.new(1280, 720)
 

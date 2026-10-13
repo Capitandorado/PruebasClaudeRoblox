@@ -172,6 +172,22 @@ local function makeCFrame()
 	return setmetatable({ lookAt = lookAt }, { __index = CFrame })
 end
 
+-- Lune's ColorSequence.new(a, b) and NumberSequence.new(a, b) ignore `b`; Roblox builds a
+-- two-keypoint gradient from it.
+local function makeSequences()
+	local function wrap(sequenceType, keypointType)
+		local original = roblox[sequenceType]
+		local function new(first, second, ...)
+			if select("#", ...) == 0 and second ~= nil and type(first) ~= "table" then
+				return original.new({ roblox[keypointType].new(0, first), roblox[keypointType].new(1, second) })
+			end
+			return original.new(first, second, ...)
+		end
+		return setmetatable({ new = new }, { __index = original })
+	end
+	return wrap("ColorSequence", "ColorSequenceKeypoint"), wrap("NumberSequence", "NumberSequenceKeypoint")
+end
+
 local function makeParams(typeName, defaults)
 	local Params = {}
 	function Params.new()
@@ -465,6 +481,7 @@ function Runtime:newVM(name)
 		env[name] = roblox[name]
 	end
 	env.CFrame = makeCFrame()
+	env.ColorSequence, env.NumberSequence = makeSequences()
 	env.TweenInfo = makeTweenInfo()
 	env.Random = makeRandom(scheduler)
 	env.DateTime = makeDateTime(scheduler)

@@ -39,7 +39,7 @@ local function show(entry: { text: string, color: Color3, secret: boolean })
 		stroke.Color = entry.color
 		stroke.Thickness = 3
 	end
-	C.gradient(entry.color:Lerp(Theme.Colors.Panel, 0.7), Theme.Colors.Panel, 0).Parent = banner
+	C.paint(banner, entry.color:Lerp(Theme.Colors.Panel, 0.7), Theme.Colors.Panel, 0)
 	C.text({
 		Name = "Text",
 		Text = entry.text,
