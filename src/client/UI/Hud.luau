@@ -10,6 +10,7 @@ local Quests = require(Shared.Config.Quests)
 local Rebirth = require(Shared.Config.Rebirth)
 local Format = require(Shared.Util.Format)
 local State = require(Shared.Logic.State)
+local Events = require(Shared.Logic.Events)
 local Progression = require(Shared.Logic.Actions.Progression)
 
 local Client = script.Parent.Parent
@@ -42,20 +43,50 @@ local MENU = {
 	{ id = "Settings", icon = "⚙️", label = "Settings" },
 }
 
+-- A small centred pill in the top stack (shards, effects, events, surge).
+local function infoPill(
+	bar: Frame,
+	name: string,
+	order: number,
+	width: number,
+	color: Color3,
+	background: Color3?
+): (Frame, TextLabel)
+	local pill = C.panel({
+		Name = name,
+		Size = UDim2.fromOffset(width, 26),
+		LayoutOrder = order,
+		Visible = false,
+		BackgroundColor3 = background or Colors.Panel,
+		Parent = bar,
+	})
+	local label = C.text({
+		Name = "Text",
+		Text = "",
+		TextSize = 14,
+		TextColor3 = color,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Size = UDim2.new(1, -12, 1, 0),
+		Position = UDim2.fromOffset(6, 0),
+		Parent = pill,
+	})
+	return pill, label
+end
+
 local function buildTopBar(parent: Frame)
 	local bar = C.new("Frame", {
 		Name = "TopBar",
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 8),
-		Size = UDim2.fromOffset(420, 96),
+		Size = UDim2.fromOffset(520, 190),
 		BackgroundTransparency = 1,
 		Parent = parent,
 	})
+	C.list(Enum.FillDirection.Vertical, 4, Enum.HorizontalAlignment.Center).Parent = bar
 	local pill = C.panel({
 		Name = "EnergyPill",
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromScale(0.5, 0),
 		Size = UDim2.fromOffset(300, 64),
+		LayoutOrder = 1,
 		Parent = bar,
 	})
 	C.gradient(Color3.fromRGB(60, 50, 110), Color3.fromRGB(28, 24, 52)).Parent = pill
@@ -87,44 +118,12 @@ local function buildTopBar(parent: Frame)
 		Position = UDim2.fromOffset(56, 40),
 		Parent = pill,
 	})
-	local shards = C.panel({
-		Name = "ShardsPill",
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 68),
-		Size = UDim2.fromOffset(170, 26),
-		Visible = false,
-		Parent = bar,
-	})
-	refs.shards = C.text({
-		Name = "Text",
-		Text = "",
-		TextSize = 15,
-		TextColor3 = Colors.Shards,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		Size = UDim2.fromScale(1, 1),
-		Parent = shards,
-	})
-	refs.shardsPill = shards
-	local surge = C.panel({
-		Name = "Surge",
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 100),
-		Size = UDim2.fromOffset(300, 34),
-		BackgroundColor3 = Color3.fromRGB(60, 10, 90),
-		Visible = false,
-		Parent = bar,
-	})
-	refs.surge = C.text({
-		Name = "Text",
-		Text = "",
-		TextSize = 18,
-		FontFace = Theme.Fonts.Bold,
-		TextColor3 = Color3.fromRGB(255, 200, 255),
-		TextXAlignment = Enum.TextXAlignment.Center,
-		Size = UDim2.fromScale(1, 1),
-		Parent = surge,
-	})
-	refs.surgePanel = surge
+	refs.effectsPill, refs.effects = infoPill(bar, "EffectsPill", 2, 500, Colors.TextDim)
+	refs.shardsPill, refs.shards = infoPill(bar, "ShardsPill", 3, 220, Colors.Shards)
+	refs.eventPill, refs.event = infoPill(bar, "EventPill", 4, 420, Colors.Text)
+	refs.surgePanel, refs.surge =
+		infoPill(bar, "Surge", 5, 300, Color3.fromRGB(255, 200, 255), Color3.fromRGB(60, 10, 90))
+	refs.surge.FontFace = Theme.Fonts.Bold
 end
 
 local function badge(button: Instance): Frame
@@ -513,6 +512,49 @@ local function refreshTop()
 	refs.eps.Text = "+" .. Format.number(production.total) .. "/s"
 	refs.shardsPill.Visible = profile.rebirths > 0 or profile.shards > 0
 	refs.shards.Text = string.format("💠 %s shards  •  ♻ %d", Format.number(profile.shards), profile.rebirths)
+	-- Active factory effects in one readable line.
+	local parts = {}
+	local function pct(value: number): string
+		return string.format("%d%%", math.floor(value * 100 + 0.5))
+	end
+	if production.globalBonus > 1e-9 then
+		table.insert(parts, "🔆 Reactor +" .. pct(production.globalBonus))
+	end
+	if production.luckBonus > 1e-9 then
+		table.insert(parts, "🍀 Luck +" .. pct(production.luckBonus))
+	end
+	if production.speedBonus > 1e-9 then
+		table.insert(parts, "⏩ Speed +" .. pct(production.speedBonus))
+	end
+	if production.duplicateChance > 1e-9 then
+		table.insert(parts, "✖2 " .. pct(production.duplicateChance))
+	end
+	local collection = State.collectionBonus(profile)
+	if collection > 1e-9 then
+		table.insert(parts, "📖 +" .. pct(collection))
+	end
+	refs.effectsPill.Visible = #parts > 0
+	refs.effects.Text = table.concat(parts, "   ")
+end
+
+local function refreshEvent()
+	local mods = Events.current
+	local now = Store.now()
+	local pill = refs.eventPill
+	local event = mods.active[1]
+	pill.Visible = true
+	if event then
+		refs.event.Text = string.format(
+			"🎉 %s  •  %s  •  %s",
+			string.upper(event.name),
+			event.description,
+			Format.duration(math.max(0, mods.endsAt - now))
+		)
+		refs.event.TextColor3 = event.color
+	else
+		refs.event.Text = "Next server event in " .. Format.duration(Events.nextRotatingStart(now) - now)
+		refs.event.TextColor3 = Colors.TextDim
+	end
 end
 
 function Hud.start()
@@ -537,6 +579,7 @@ function Hud.start()
 	end)
 
 	local panelClock = 0
+	local eventClock = 1
 	RunService.RenderStepped:Connect(function(dt)
 		local profile = Store.profile
 		if not profile then
@@ -552,6 +595,20 @@ function Hud.start()
 			displayedEnergy += (target - displayedEnergy) * math.min(1, dt * 10)
 		end
 		refs.energy.Text = Format.number(displayedEnergy)
+		eventClock += dt
+		if eventClock >= 1 then
+			eventClock = 0
+			if Events.refresh(Store.now()) then
+				Store.invalidate()
+				local event = Events.current.active[1]
+				if event then
+					App.toast("🎉 " .. event.name .. " started: " .. event.description, "success")
+					Sound.play("Unlock")
+				end
+				Store.Changed:Fire({ events = true })
+			end
+			refreshEvent()
+		end
 		panelClock += dt
 		if panelClock > 0.2 then
 			panelClock = 0

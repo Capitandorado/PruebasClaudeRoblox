@@ -12,6 +12,9 @@ local Items = require(script.Parent.Items)
 local MachineStats = require(script.Parent.MachineStats)
 local Production = require(script.Parent.Production)
 local Roller = require(script.Parent.Roller)
+local Events = require(script.Parent.Events)
+local Artifacts = require(Shared.Config.Artifacts)
+local Mutations = require(Shared.Config.Mutations)
 
 type Profile = any
 
@@ -72,6 +75,22 @@ function State.owns(profile: Profile, machineId: string): boolean
 	return profile.machines[machineId] ~= nil
 end
 
+-- Permanent bonus from the collection: every artifact and mutation variant ever found.
+function State.collectionBonus(profile: Profile): number
+	local bonus = 0
+	for artifactId, entry in profile.collection do
+		if Artifacts.get(artifactId) then
+			bonus += Economy.CollectionBonusPerArtifact
+			for mutationId in entry.muts do
+				if Mutations.get(mutationId) then
+					bonus += Economy.CollectionBonusPerVariant
+				end
+			end
+		end
+	end
+	return bonus
+end
+
 function State.computeProduction(profile: Profile, surgeMult: number?): Production.Result
 	local overclock = State.machineLevel(profile, "overclocker")
 	return Production.compute({
@@ -80,7 +99,17 @@ function State.computeProduction(profile: Profile, surgeMult: number?): Producti
 		rebirthMult = Rebirth.productionMultiplier(profile.rebirths),
 		perkBonus = State.perkBonus(profile, "efficiency"),
 		surgeMult = surgeMult or 1,
+		collectionBonus = State.collectionBonus(profile),
+		eventMult = Events.current.productionMult,
 	})
+end
+
+-- Production total if `key` were placed on `slot` (swapping out whatever is there).
+function State.previewPlacement(profile: Profile, slot: number, key: string): number
+	local copy = table.clone(profile)
+	copy.placed = table.clone(profile.placed)
+	copy.placed[tostring(slot)] = key
+	return State.computeProduction(copy).total
 end
 
 function State.luck(profile: Profile, machineId: string, production: Production.Result): number
@@ -90,13 +119,14 @@ function State.luck(profile: Profile, machineId: string, production: Production.
 		machineLuck = 1
 	end
 	local bonus = State.upgradeBonus(profile, "luck") + State.perkBonus(profile, "fortune") + production.luckBonus
-	return Roller.clampLuck(machineLuck * (1 + bonus))
+	return Roller.clampLuck(machineLuck * (1 + bonus) * Events.current.luckMult)
 end
 
 -- Interval divisor from speed sources (Quick Assembly upgrade + Accelerator artifacts).
 function State.speedFactor(profile: Profile, production: Production.Result): number
 	local upgradeSpeed = State.upgradeBonus(profile, "speed")
-	return 1 + math.min(Economy.MaxSpeedBonus, upgradeSpeed + production.speedBonus)
+	-- Event speed is applied on top of the cap; interval floors still apply.
+	return (1 + math.min(Economy.MaxSpeedBonus, upgradeSpeed + production.speedBonus)) * (1 + Events.current.speedBonus)
 end
 
 function State.chargeInterval(profile: Profile, machineId: string, production: Production.Result): number

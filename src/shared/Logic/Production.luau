@@ -7,6 +7,7 @@
 --             x (1 + global bonus)             Reactor + Singularity
 --             x (1 + machine bonus)            Overclocker
 --             x rebirth multiplier x (1 + perk bonus) x surge multiplier
+--             x (1 + collection bonus) x event multiplier
 -- Entropy artifacts are reported separately: their per-second factor is rolled at tick time.
 
 local Shared = script.Parent.Parent
@@ -23,6 +24,8 @@ export type Context = {
 	rebirthMult: number?,
 	perkBonus: number?,
 	surgeMult: number?,
+	eventMult: number?,
+	collectionBonus: number?,
 }
 
 export type EntropySource = { slot: number, eps: number, min: number, max: number }
@@ -111,6 +114,8 @@ function Production.compute(context: Context): Result
 		* (context.rebirthMult or 1)
 		* (1 + (context.perkBonus or 0))
 		* (context.surgeMult or 1)
+		* (1 + (context.collectionBonus or 0))
+		* (context.eventMult or 1)
 
 	-- Pass 2: per-slot output.
 	local perSlot: { [number]: number } = {}

@@ -6,6 +6,7 @@
 --    (tiers with no artifacts in the catalog are skipped).
 -- 2. Inside a tier, an artifact is chosen by its catalog `weight`.
 -- 3. A mutation is rolled independently (rarest first, single uniform draw).
+-- Artifacts from event catalogs only exist while their event is active (Logic/Events).
 
 local Config = script.Parent.Parent.Config
 local Artifacts = require(Config.Artifacts)
@@ -13,6 +14,7 @@ local Boxes = require(Config.Boxes)
 local Economy = require(Config.Economy)
 local Mutations = require(Config.Mutations)
 local Rarities = require(Config.Rarities)
+local Events = require(script.Parent.Events)
 
 -- Anything with Random:NextNumber() (Roblox's Random, or a deterministic test RNG).
 export type Rng = {
@@ -39,6 +41,18 @@ function Roller.clampLuck(luck: number): number
 	return clampLuck(luck)
 end
 
+-- Artifacts of a tier that can currently drop (core + active event catalogs).
+local function availableIn(rarityId: string): { Artifacts.Artifact }
+	local result = {}
+	local bucket: { Artifacts.Artifact } = Artifacts.ByRarity[rarityId] or {}
+	for _, artifact in bucket do
+		if Events.catalogActive(artifact.catalog) then
+			table.insert(result, artifact)
+		end
+	end
+	return result
+end
+
 function Roller.getRarityOdds(boxId: string, luck: number): { RarityOdds }
 	local box = Boxes.get(boxId)
 	if not box then
@@ -49,8 +63,8 @@ function Roller.getRarityOdds(boxId: string, luck: number): { RarityOdds }
 	local total = 0
 	for _, rarity in Rarities.List do
 		local base = box.rarityWeights[rarity.id] or 0
-		local bucket = Artifacts.ByRarity[rarity.id]
-		if base > 0 and bucket and #bucket > 0 then
+		local bucket = availableIn(rarity.id)
+		if base > 0 and #bucket > 0 then
 			local weight = base * luck ^ rarity.luckExponent
 			table.insert(weights, { rarity = rarity.id, weight = weight })
 			total += weight
@@ -65,14 +79,14 @@ end
 
 function Roller.getArtifactOdds(boxId: string, luck: number): { ArtifactOdds }
 	luck = clampLuck(luck)
-	local cacheKey = string.format("%s:%.4f", boxId, luck)
+	local cacheKey = string.format("%s:%.4f:%s", boxId, luck, Events.current.signature)
 	local cached = oddsCache[cacheKey]
 	if cached then
 		return cached
 	end
 	local result = {}
 	for _, rarityOdds in Roller.getRarityOdds(boxId, luck) do
-		local bucket = Artifacts.ByRarity[rarityOdds.rarity]
+		local bucket = availableIn(rarityOdds.rarity)
 		local bucketWeight = 0
 		for _, artifact in bucket do
 			bucketWeight += artifact.weight
@@ -96,7 +110,7 @@ end
 
 function Roller.getMutationOdds(boxId: string): { MutationOdds }
 	local box = Boxes.get(boxId)
-	local mult = if box then box.mutationMult else 1
+	local mult = (if box then box.mutationMult else 1) * Events.current.mutationMult
 	local odds = {}
 	for _, mutation in Mutations.List do
 		table.insert(odds, { id = mutation.id, chance = math.min(Mutations.MaxChance, mutation.chance * mult) })

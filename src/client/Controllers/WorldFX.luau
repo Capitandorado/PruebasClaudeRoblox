@@ -21,6 +21,8 @@ type Floating = { model: Model, base: CFrame, phase: number }
 
 local floating: { [Model]: Floating } = {}
 local spinners: { [Model]: CFrame } = {}
+local sliders: { [Model]: CFrame } = {}
+local pulses: { [BasePart]: Vector3 } = {}
 local reduced = false
 
 local function trackFloating(model: Instance)
@@ -33,6 +35,22 @@ local function trackSpinner(model: Instance)
 	if model:IsA("Model") and not spinners[model] then
 		spinners[model] = model:GetPivot()
 	end
+end
+
+local function trackSlider(model: Instance)
+	if model:IsA("Model") and not sliders[model] then
+		sliders[model] = model:GetPivot()
+	end
+end
+
+local function trackPulse(part: Instance)
+	if part:IsA("BasePart") and not pulses[part] then
+		pulses[part] = part.Size
+	end
+end
+
+local function near(position: Vector3, cameraPosition: Vector3): boolean
+	return (position - cameraPosition).Magnitude < ANIMATE_DISTANCE
 end
 
 local function setVfx(enabled: boolean)
@@ -85,6 +103,14 @@ function WorldFX.start()
 		trackSpinner(model)
 	end
 	CollectionService:GetInstanceAddedSignal("Spinner"):Connect(trackSpinner)
+	for _, model in CollectionService:GetTagged("Slider") do
+		trackSlider(model)
+	end
+	CollectionService:GetInstanceAddedSignal("Slider"):Connect(trackSlider)
+	for _, part in CollectionService:GetTagged("Pulse") do
+		trackPulse(part)
+	end
+	CollectionService:GetInstanceAddedSignal("Pulse"):Connect(trackPulse)
 	CollectionService:GetInstanceAddedSignal("VFX"):Connect(function(emitter)
 		if reduced and emitter:IsA("ParticleEmitter") then
 			emitter.Enabled = false
@@ -115,11 +141,33 @@ function WorldFX.start()
 				spinners[model] = nil
 				continue
 			end
-			local speed = (model:GetAttribute("SpinSpeed") or 20) :: number
-			model:PivotTo(base * CFrame.Angles(0, math.rad(clock * speed), 0))
+			if near(base.Position, cameraPosition) or model.Name:match("^CoreRing") then
+				local speed = (model:GetAttribute("SpinSpeed") or 20) :: number
+				model:PivotTo(base * CFrame.Angles(0, math.rad(clock * speed), 0))
+			end
 		end
 		if reduced then
 			return
+		end
+		for model, base in sliders do
+			if not model.Parent then
+				sliders[model] = nil
+				continue
+			end
+			if near(base.Position, cameraPosition) then
+				local amplitude = (model:GetAttribute("SlideAmplitude") or 1) :: number
+				local speed = (model:GetAttribute("SlideSpeed") or 1) :: number
+				model:PivotTo(base * CFrame.new(math.sin(clock * speed) * amplitude, 0, 0))
+			end
+		end
+		for part, size in pulses do
+			if not part.Parent then
+				pulses[part] = nil
+				continue
+			end
+			if near(part.Position, cameraPosition) then
+				part.Size = size * (1 + math.sin(clock * 3) * 0.12)
+			end
 		end
 		local animated = 0
 		for model, entry in floating do

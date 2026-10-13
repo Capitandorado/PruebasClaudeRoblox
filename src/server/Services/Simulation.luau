@@ -7,6 +7,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Economy = require(Shared.Config.Economy)
 local Simulation = require(Shared.Logic.Simulation)
+local Events = require(Shared.Logic.Events)
 local Format = require(Shared.Util.Format)
 
 local Services = script.Parent
@@ -75,12 +76,22 @@ end
 -- Advances every session by `dt` seconds (also used by the admin time-warp).
 function SimulationService.step(dt: number)
 	local now = Sessions.now()
+	-- Timed events change luck/production for everyone: recompute cached production.
+	if Events.refresh(now) then
+		for _, session in Sessions.all() do
+			Sessions.markDirty(session)
+		end
+	end
 	for _, session in Sessions.all() do
 		local ok, err = pcall(tickSession, session, dt, now)
 		if not ok then
 			warn("[Simulation] tick failed for " .. session.player.Name .. ": " .. tostring(err))
 		end
 	end
+end
+
+function SimulationService.init()
+	Events.refresh(Sessions.now())
 end
 
 function SimulationService.start()

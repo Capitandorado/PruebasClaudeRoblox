@@ -20,6 +20,7 @@ local Remote = require(Client.Core.Remote)
 local Store = require(Client.Core.Store)
 local Sound = require(Client.Core.Sound)
 local App = require(Client.UI.App)
+local FactoryView = require(script.Parent.FactoryView)
 local Theme = require(Client.UI.Theme)
 local C = require(Client.UI.Components)
 
@@ -86,6 +87,7 @@ end
 function Placement.cancel()
 	Placement.activeKey = nil
 	clearMarkers()
+	FactoryView.preview(nil)
 	if hudRef then
 		hudRef.showPlacement(nil)
 	end
@@ -100,8 +102,12 @@ function Placement.begin(key: string)
 	Placement.activeKey = key
 	App.closeWindow()
 	showMarkers()
+	FactoryView.preview(key)
 	if hudRef then
-		hudRef.showPlacement("Tap a pedestal to place " .. Items.displayName(item), Placement.cancel)
+		hudRef.showPlacement(
+			"Tap a pedestal to place " .. Items.displayName(item) .. " — labels show the Energy/s change",
+			Placement.cancel
+		)
 	end
 end
 

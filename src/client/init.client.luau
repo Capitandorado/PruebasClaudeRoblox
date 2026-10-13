@@ -11,6 +11,7 @@ local Placement = require(Client.Controllers.Placement)
 local WorldFX = require(Client.Controllers.WorldFX)
 local Prompts = require(Client.Controllers.Prompts)
 local Announcements = require(Client.Controllers.Announcements)
+local FactoryView = require(Client.Controllers.FactoryView)
 
 -- The store must listen before the remotes deliver the first (queued) state.
 Store.start()
@@ -30,6 +31,7 @@ Placement.start()
 WorldFX.start()
 Prompts.start()
 Announcements.start()
+FactoryView.start()
 
 App.WindowChanged:Connect(function()
 	Placement.closePopup()

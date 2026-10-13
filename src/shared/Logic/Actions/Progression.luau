@@ -12,6 +12,7 @@ local Plot = require(Shared.Config.Plot)
 local Profile = require(Shared.Logic.Profile)
 local Logic = script.Parent.Parent
 local State = require(Logic.State)
+local Events = require(Logic.Events)
 local Roller = require(Logic.Roller)
 local Inventory = require(Logic.Inventory)
 
@@ -98,20 +99,26 @@ function Progression.questReward(profile: ProfileData, questId: string, eps: num
 end
 
 -- Discovery quests disappear once every artifact and mutation variant has been found.
+-- Undiscovered artifacts/variants that can currently drop (event catalogs only count while
+-- their event runs, so the quest is never impossible).
 function Progression.remainingDiscoveries(profile: ProfileData): number
-	local total = #Artifacts.List * (1 + #Mutations.List)
-	local found = 0
-	for artifactId, entry in profile.collection do
-		if Artifacts.get(artifactId) then
-			found += 1
-			for mutationId in entry.muts do
-				if Mutations.get(mutationId) then
-					found += 1
+	local remaining = 0
+	for _, artifact in Artifacts.List do
+		if not Events.catalogActive(artifact.catalog) then
+			continue
+		end
+		local entry = profile.collection[artifact.id]
+		if not entry then
+			remaining += 1 + #Mutations.List
+		else
+			for _, mutation in Mutations.List do
+				if not entry.muts[mutation.id] then
+					remaining += 1
 				end
 			end
 		end
 	end
-	return total - found
+	return remaining
 end
 
 function Progression.questAvailable(profile: ProfileData, questId: string): boolean

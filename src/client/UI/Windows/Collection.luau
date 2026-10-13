@@ -60,9 +60,13 @@ return {
 		})
 
 		local function renderArtifacts(profile: any)
-			local discovered, variants = 0, 0
-			local totalVariants = #Artifacts.List * #Mutations.List
+			-- Completion counts the core catalog; event artifacts are a bonus.
+			local discovered, variants, core = 0, 0, 0
 			for _, artifact in Artifacts.List do
+				if artifact.catalog ~= "core" then
+					continue
+				end
+				core += 1
 				local entry = profile.collection[artifact.id]
 				if entry then
 					discovered += 1
@@ -71,15 +75,17 @@ return {
 					end
 				end
 			end
+			local totalVariants = core * #Mutations.List
 			local best = Rarities.List[profile.bestRarity]
 			summary.Text = string.format(
-				"Discovered %d/%d (%d%%)   •   Mutation variants %d/%d   •   Best rarity: %s",
+				"Found %d/%d (%d%%)  •  Variants %d/%d  •  Best: %s  •  Bonus +%d%% production",
 				discovered,
-				#Artifacts.List,
-				math.floor(discovered / #Artifacts.List * 100 + 0.5),
+				core,
+				math.floor(discovered / math.max(1, core) * 100 + 0.5),
 				variants,
 				totalVariants,
-				if best then best.id else "—"
+				if best then best.id else "—",
+				math.floor(State.collectionBonus(profile) * 100 + 0.5)
 			)
 			local grid = C.scroll({ Name = "Grid", Size = UDim2.new(0.62, -6, 1, 0), Parent = body })
 			C.new("UIGridLayout", {
@@ -117,7 +123,7 @@ return {
 				})
 				C.text({
 					Name = "Rarity",
-					Text = artifact.rarity,
+					Text = artifact.rarity .. (if artifact.catalog ~= "core" then "  •  EVENT" else ""),
 					TextSize = 12,
 					TextColor3 = color,
 					TextXAlignment = Enum.TextXAlignment.Center,

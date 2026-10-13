@@ -14,7 +14,8 @@
 --   shape       procedural model builder key (Visuals/ArtifactModels)
 --   primary / secondary   main colors used by the model
 --   lore        short collection text
---   catalog     catalog/event this artifact belongs to ("core" for the base game)
+--   catalog     catalog/event this artifact belongs to ("core" for the base game; other
+--               catalogs only drop while an event in Config/Events enables them)
 
 export type Effect = {
 	type: string,
@@ -252,6 +253,21 @@ local list: { Artifact } = {
 		secondary = Color3.fromRGB(255, 30, 60),
 		lore = "It should not exist. Every few minutes the whole factory forgets its own rules.",
 		catalog = "core",
+	},
+	-- Event artifacts: only drop while their catalog's event is active (Config/Events).
+	{
+		id = "frost_shard",
+		name = "Frost Shard",
+		rarity = "Rare",
+		weight = 30,
+		eps = 16,
+		value = 150,
+		effects = { { type = "luck", amount = 0.1 } },
+		shape = "Shard",
+		primary = Color3.fromRGB(190, 235, 255),
+		secondary = Color3.fromRGB(120, 200, 255),
+		lore = "Only forms during the Winter Freeze. Cold enough to slow probability itself.",
+		catalog = "winter",
 	},
 }
 

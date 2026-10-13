@@ -13,6 +13,7 @@ export type Grant = {
 	key: string,
 	newArtifact: boolean,
 	newVariant: boolean,
+	newTier: boolean,
 	sold: boolean,
 	value: number,
 }
@@ -92,9 +93,11 @@ end
 -- Items that would overflow storage are sold automatically so nothing is ever lost.
 function Inventory.grantRolled(profile: Profile, item: Items.Item, now: number): Grant
 	local key = Items.keyOf(item)
+	local previousBest = profile.bestRarity
 	local newArtifact, newVariant = Inventory.discover(profile, item, now)
 	local rarity = Items.rarityOf(item)
 	local order = Rarities.order(rarity)
+	local newTier = order > previousBest
 	if order >= Rarities.order("Rare") then
 		profile.stats.foundRare += 1
 	end
@@ -106,10 +109,24 @@ function Inventory.grantRolled(profile: Profile, item: Items.Item, now: number):
 	if autoSell or State.freeSpace(profile) < 1 then
 		Inventory.earn(profile, value)
 		profile.stats.itemsSold += 1
-		return { key = key, newArtifact = newArtifact, newVariant = newVariant, sold = true, value = value }
+		return {
+			key = key,
+			newArtifact = newArtifact,
+			newVariant = newVariant,
+			newTier = newTier,
+			sold = true,
+			value = value,
+		}
 	end
 	Inventory.add(profile, key, 1)
-	return { key = key, newArtifact = newArtifact, newVariant = newVariant, sold = false, value = value }
+	return {
+		key = key,
+		newArtifact = newArtifact,
+		newVariant = newVariant,
+		newTier = newTier,
+		sold = false,
+		value = value,
+	}
 end
 
 return Inventory

@@ -286,6 +286,36 @@ local function showCard(result: any)
 	end)
 end
 
+-- Big centred banner the first time the player reaches a rarity tier.
+local function celebrateTier(rarity: Rarities.Rarity)
+	local overlay = App.layers.Overlay
+	if not overlay then
+		return
+	end
+	local banner = C.new("TextLabel", {
+		Name = "TierBanner",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.16),
+		Size = UDim2.fromOffset(700, 70),
+		BackgroundTransparency = 1,
+		Text = "NEW BEST RARITY: " .. string.upper(rarity.id),
+		FontFace = Theme.Fonts.Display,
+		TextSize = 34,
+		TextColor3 = rarity.color,
+		TextStrokeTransparency = 0.2,
+		ZIndex = 40,
+		Parent = overlay,
+	})
+	C.new("UIStroke", { Color = rarity.accent, Thickness = 2, Parent = banner })
+	local scale = C.new("UIScale", { Scale = 0.3, Parent = banner })
+	C.tween(scale, 0.35, { Scale = 1 }, Enum.EasingStyle.Back)
+	task.delay(2.6, function()
+		C.tween(banner, 0.4, { TextTransparency = 1, TextStrokeTransparency = 1 })
+		task.wait(0.45)
+		banner:Destroy()
+	end)
+end
+
 -- Full reveal sequence. Yields until the animation is over.
 function Box.playReveal(result: any)
 	local grant = result.grants[1]
@@ -331,6 +361,9 @@ function Box.playReveal(result: any)
 		flashScreen(rarity.color)
 	end
 	showCard(result)
+	if grant.newTier and rarity.order >= Rarities.order("Rare") then
+		celebrateTier(rarity)
+	end
 
 	local artifactModel = ArtifactModels.build(item.id, { mutation = item.mut, stars = item.stars })
 	artifactModel:PivotTo(CFrame.new(position))

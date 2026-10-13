@@ -26,6 +26,9 @@ Economy.MinPrinterInterval = 3
 Economy.TickInterval = 1
 -- Box printer can bank at most this many pending boxes while the player is away from the server.
 Economy.PrinterBacklog = 3
+-- Permanent production bonus for the collection (kept through rebirths).
+Economy.CollectionBonusPerArtifact = 0.01
+Economy.CollectionBonusPerVariant = 0.0025
 -- Every quest reward is at least this many seconds of the player's current production.
 Economy.QuestRewardSeconds = 30
 

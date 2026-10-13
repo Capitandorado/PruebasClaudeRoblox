@@ -16,6 +16,18 @@ local function at(x: number, y: number, z: number): CFrame
 	return CFrame.new(x, y, z)
 end
 
+-- Groups animated parts in a sub-model the client animates (WorldFX): "Spinner" rotates
+-- around its pivot, "Slider" moves back and forth along its local X axis.
+local function animated(model: Model, name: string, tag: string, pivot: CFrame, attributes: { [string]: number }): Model
+	local group = Build.model(name, model)
+	Build.root(group, pivot)
+	group:AddTag(tag)
+	for key, value in attributes do
+		group:SetAttribute(key, value)
+	end
+	return group
+end
+
 local function output(model: Model, position: Vector3)
 	local part = Build.part({
 		Name = "Output",
@@ -125,21 +137,22 @@ builders.box_printer = function(model, color)
 			Parent = model,
 		})
 	end
+	local carriage = animated(model, "Carriage", "Slider", at(0, 3.9, 0.5), { SlideAmplitude = 2.3, SlideSpeed = 1.8 })
 	Build.part({
 		Name = "Head",
 		Size = Vector3.new(1.4, 1, 1.2),
-		CFrame = at(-1, 3.9, 0.5),
+		CFrame = at(0, 3.9, 0.5),
 		Color = color,
 		Material = N.Metal,
-		Parent = model,
+		Parent = carriage,
 	})
 	Build.part({
 		Name = "Nozzle",
 		Size = Vector3.new(0.4, 0.6, 0.4),
-		CFrame = at(-1, 3.2, 0.5),
+		CFrame = at(0, 3.2, 0.5),
 		Color = color,
 		Material = N.Neon,
-		Parent = model,
+		Parent = carriage,
 	})
 	Build.part({
 		Name = "Tray",
@@ -159,7 +172,7 @@ builders.box_printer = function(model, color)
 			Parent = model,
 		})
 	end
-	Build.light(model:FindFirstChild("Nozzle") :: BasePart, color, 2, 10)
+	Build.light(carriage:FindFirstChild("Nozzle") :: BasePart, color, 2, 10)
 	output(model, Vector3.new(0, 4.5, -2.6))
 end
 
@@ -202,6 +215,7 @@ builders.overclocker = function(model, color)
 		Material = N.Metal,
 		Parent = model,
 	})
+	local fan = animated(model, "Fan", "Spinner", at(0, 7.8, 0), { SpinSpeed = 320 })
 	for index = 1, 4 do
 		Build.part({
 			Name = "FanBlade",
@@ -209,7 +223,7 @@ builders.overclocker = function(model, color)
 			CFrame = at(0, 7.8, 0) * CFrame.Angles(0, index / 4 * math.pi, math.rad(12)),
 			Color = color,
 			Material = N.Metal,
-			Parent = model,
+			Parent = fan,
 		})
 	end
 	Build.light(model:FindFirstChild("Coil") :: BasePart, color, 2.5, 14)
@@ -235,7 +249,7 @@ builders.fusion_chamber = function(model, color)
 		Transparency = 0.55,
 		Parent = model,
 	})
-	Build.sphere({
+	local core = Build.sphere({
 		Name = "Core",
 		Diameter = 1.6,
 		CFrame = at(0, 4, 0),
@@ -243,6 +257,7 @@ builders.fusion_chamber = function(model, color)
 		Material = N.Neon,
 		Parent = model,
 	})
+	core:AddTag("Pulse")
 	for index = 1, 3 do
 		local angle = index / 3 * math.pi * 2
 		local base = Vector3.new(math.cos(angle) * 2.6, 1.2, math.sin(angle) * 2.6)
@@ -295,6 +310,7 @@ builders.lucky_fabricator = function(model, color)
 		Material = N.Neon,
 		Parent = model,
 	})
+	local clover = animated(model, "Clover", "Spinner", at(0, 5.7, 0.5), { SpinSpeed = 45 })
 	for index = 1, 4 do
 		local angle = index / 4 * math.pi * 2 + math.pi / 4
 		Build.sphere({
@@ -303,7 +319,7 @@ builders.lucky_fabricator = function(model, color)
 			CFrame = at(math.cos(angle) * 0.75, 5.7, 0.5 + math.sin(angle) * 0.75),
 			Color = color,
 			Material = N.Neon,
-			Parent = model,
+			Parent = clover,
 		})
 	end
 	Build.part({
@@ -356,8 +372,9 @@ builders.void_forge = function(model, color)
 			Parent = model,
 		})
 	end
-	Build.ring(model, at(0, 6.5, 1) * CFrame.Angles(math.rad(15), 0, 0), 2.6, 0.25, 22, color, N.Neon)
-	Build.sphere({
+	local halo = animated(model, "Halo", "Spinner", at(0, 6.5, 1), { SpinSpeed = -50 })
+	Build.ring(halo, at(0, 6.5, 1) * CFrame.Angles(math.rad(15), 0, 0), 2.6, 0.25, 22, color, N.Neon)
+	local rift = Build.sphere({
 		Name = "Rift",
 		Diameter = 1.4,
 		CFrame = at(0, 8.8, 1),
@@ -365,8 +382,9 @@ builders.void_forge = function(model, color)
 		Material = N.ForceField,
 		Parent = model,
 	})
-	Build.light(model:FindFirstChild("Rift") :: BasePart, color, 3, 16)
-	Build.particles(model:FindFirstChild("Rift") :: BasePart, "Glow", color, 4)
+	rift:AddTag("Pulse")
+	Build.light(rift, color, 3, 16)
+	Build.particles(rift, "Glow", color, 4)
 	output(model, Vector3.new(0, 3.5, -2))
 end
 

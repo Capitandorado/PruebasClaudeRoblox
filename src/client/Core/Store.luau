@@ -59,6 +59,11 @@ function Store.production()
 	return productionCache
 end
 
+-- Forces derived values to be recomputed (e.g. when a timed event starts or ends).
+function Store.invalidate()
+	productionCache = nil
+end
+
 local function apply(kind: string, payload: any)
 	local changed: { [string]: boolean } = {}
 	if kind == "Full" then
