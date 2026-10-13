@@ -15,6 +15,7 @@ local Sound = require(script.Parent.Parent.Core.Sound)
 local App = {}
 
 App.WindowChanged = Signal.new()
+App.VisitChanged = Signal.new() -- (name: string?) while visiting another factory
 
 App.gui = nil :: ScreenGui?
 App.layers = {} :: { [string]: Frame }

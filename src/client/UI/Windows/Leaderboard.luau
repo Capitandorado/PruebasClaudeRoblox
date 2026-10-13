@@ -114,6 +114,7 @@ return {
 									"Visiting " .. response.data.name .. "'s factory. Use 🏠 to go back.",
 									"info"
 								)
+								app.VisitChanged:Fire(response.data.name)
 								app.closeWindow()
 							else
 								app.showError(response.err)

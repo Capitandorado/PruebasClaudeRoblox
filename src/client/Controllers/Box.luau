@@ -327,7 +327,12 @@ function Box.playReveal(result: any)
 	local reveal = rarity.reveal
 	local reduced = reducedEffects()
 	local duration = if reduced then reveal.duration * 0.5 else reveal.duration
-	local position = outputPosition(Store.plot, result.machineId) or fallbackPosition()
+	local position = outputPosition(Store.plot, result.machineId)
+	local camera = workspace.CurrentCamera
+	if not position or (camera and (camera.CFrame.Position - position).Magnitude > 120) then
+		-- Visiting another factory (or far away): play the reveal in front of the camera.
+		position = fallbackPosition()
+	end
 
 	Sound.play("BoxOpen", 0.05)
 	local boxModel = buildBox(result.boxId)

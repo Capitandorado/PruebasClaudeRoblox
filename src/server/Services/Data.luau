@@ -67,6 +67,9 @@ local function update(recordKey: string, transform: (any) -> any): (boolean, any
 		end
 		return true, result
 	end
+	if not store then
+		return false, "DataStore unavailable"
+	end
 	return pcall(function()
 		return (store :: GlobalDataStore):UpdateAsync(recordKey, transform)
 	end)
@@ -310,7 +313,8 @@ function Data.init()
 			)
 		end
 	elseif not ok then
-		Data.mode = "memory"
+		-- Never fall back to memory on a live server: players would lose progress silently.
+		-- Loads will fail and players get a clear "please rejoin" message instead.
 		warn("[Data] DataStoreService unavailable: " .. tostring(result))
 	end
 end

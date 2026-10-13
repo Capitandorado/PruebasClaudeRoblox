@@ -121,6 +121,7 @@ local function buildTopBar(parent: Frame)
 	refs.effectsPill, refs.effects = infoPill(bar, "EffectsPill", 2, 500, Colors.TextDim)
 	refs.shardsPill, refs.shards = infoPill(bar, "ShardsPill", 3, 220, Colors.Shards)
 	refs.eventPill, refs.event = infoPill(bar, "EventPill", 4, 420, Colors.Text)
+	refs.visitPill, refs.visit = infoPill(bar, "VisitPill", 6, 360, Colors.Accent, Color3.fromRGB(16, 40, 60))
 	refs.surgePanel, refs.surge =
 		infoPill(bar, "Surge", 5, 300, Color3.fromRGB(255, 200, 255), Color3.fromRGB(60, 10, 90))
 	refs.surge.FontFace = Theme.Fonts.Bold
@@ -198,7 +199,9 @@ local function buildMenu(parent: Frame)
 	end
 	addButton("Home", "🏠", "Home", #MENU + 1, function()
 		local response = Remote.request("GoHome")
-		if not response.ok then
+		if response.ok then
+			App.VisitChanged:Fire(nil)
+		else
 			App.showError(response.err)
 		end
 	end)
@@ -576,6 +579,10 @@ function Hud.start()
 	end)
 	Box.Busy:Connect(function()
 		Hud.refreshBoxPanel()
+	end)
+	App.VisitChanged:Connect(function(name)
+		refs.visitPill.Visible = name ~= nil
+		refs.visit.Text = if name then "👀 Visiting " .. name .. "'s factory  •  🏠 Home to return" else ""
 	end)
 
 	local panelClock = 0
