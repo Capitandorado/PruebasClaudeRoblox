@@ -12,7 +12,9 @@ completa la colección y haz **rebirth** para obtener bonificaciones permanentes
 3. Pulsa **Play** (F5). El mundo, las parcelas y la interfaz se construyen al arrancar.
 
 En Studio el botón 🛠️ **Debug** del menú izquierdo da Energy, avanza el tiempo, regala
-artefactos o reinicia tus datos para probar la progresión en segundos.
+artefactos, simula 2 h fuera del juego, adelanta la recompensa diaria o reinicia tus datos
+para probar la progresión en segundos. Las partidas de Studio guardan en almacenes aparte, así
+que nada de esto afecta a los jugadores reales.
 
 Para publicar la experiencia: [docs/PUBLISHING.md](docs/PUBLISHING.md).
 
@@ -22,7 +24,8 @@ Para publicar la experiencia: [docs/PUBLISHING.md](docs/PUBLISHING.md).
 `tools/preview` (no es una captura de Roblox). Más: [el mundo](docs/images/world.png),
 [artefactos](docs/images/artifacts.png),
 [máquinas](docs/images/machines.png), interfaz en [PC](docs/images/ui_hud.png),
-[inventario](docs/images/ui_inventory.png), [probabilidades](docs/images/ui_odds.png) y
+[inventario](docs/images/ui_inventory.png), [probabilidades](docs/images/ui_odds.png),
+[recompensa diaria](docs/images/ui_daily.png), [bienvenida](docs/images/ui_welcome.png) y
 [móvil](docs/images/ui_phone.png) (maqueta aproximada: los emoji se ven como círculos).*
 
 ## Qué incluye
@@ -35,11 +38,13 @@ Para publicar la experiencia: [docs/PUBLISHING.md](docs/PUBLISHING.md).
 | Máquinas | Starter Fabricator (gratis), Box Printer (automática), Overclocker, Fusion Chamber, Lucky Fabricator y Void Forge (tras rebirth); todas mejorables |
 | Fábrica | Parcela por jugador con 6 → 24 pedestales (5 ampliaciones), vitrina con tus hallazgos más raros, cartel con tu producción |
 | Progresión | Mejoras de suerte, velocidad y almacén; misiones; colección con bonus permanente; rebirth con tienda de ventajas (Void Shards) |
+| Volver a jugar | Ganancias sin conexión (25 % de la producción, hasta 8 h, con resumen al entrar) y recompensa diaria con racha de 7 días y *Daily Crates* |
 | Claridad | Etiquetas de producción sobre cada pedestal, enlaces de neón entre artefactos que se potencian/drenan, vista previa de Energy/s al colocar, probabilidades reales visibles |
 | Eventos | Evento de servidor cada 30 min (Luck Storm, Overdrive, Rapid Fabrication, Mutation Rain) y eventos de temporada con artefactos propios |
 | Multijugador | Hasta 8 jugadores, visitas a otras fábricas, clasificaciones del servidor y globales, anuncios de hallazgos extraordinarios |
 | Guardado | DataStore con bloqueo de sesión, reintentos, validación antes de guardar y guardado al cerrar el servidor |
 | Seguridad | Todo se calcula en el servidor; una única RemoteFunction con validación de argumentos y límite de frecuencia por acción |
+| Analíticas | Embudo de primera sesión, fuentes y gastos de Energy/Shards, rebirths y racha diaria en el panel de Analytics de Roblox |
 | Interfaz | Adaptada a PC y móvil, animaciones, consejos de inicio, ajustes de sonido y de efectos visuales |
 
 ## Cómo se juega
@@ -50,6 +55,8 @@ Para publicar la experiencia: [docs/PUBLISHING.md](docs/PUBLISHING.md).
 - Los artefactos con efecto de vecindad potencian (o drenan) los pedestales de al lado: la
   posición importa. Al colocar, cada pedestal muestra cuánta Energy/s ganarías ahí.
 - 📖 **Collection → Odds** muestra las probabilidades exactas con tu suerte actual.
+- 📜 **Quests → Daily**: recoge la recompensa diaria; el punto rojo del menú avisa cuando está
+  lista.
 
 ## Estructura
 
@@ -60,7 +67,7 @@ Para publicar la experiencia: [docs/PUBLISHING.md](docs/PUBLISHING.md).
 | `src/shared/Visuals` | Modelos procedurales de artefactos y máquinas |
 | `src/server/Services` | Red, datos, mundo, parcelas, sesiones, simulación, clasificaciones, administración |
 | `src/client` | Interfaz, animaciones y controladores |
-| `tests/` | 88 pruebas en Lune con un entorno simulado de Roblox validado contra la API oficial |
+| `tests/` | 113 pruebas en Lune con un entorno simulado de Roblox validado contra la API oficial |
 | `tools/` | Verificación completa, simulador de economía, generador de sonidos, vistas previas de los modelos |
 | `assets/sounds` | 15 efectos de sonido originales listos para subir |
 

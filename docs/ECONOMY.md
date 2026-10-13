@@ -40,3 +40,19 @@ probabilidades se muestran tal cual en *Collection → Odds*.
 - Las cajas de pago cuestan lo mayor entre un precio base y X segundos de la **mejor producción de
   la partida** (no la actual, para que quitar artefactos no abarate las cajas). Así siguen siendo
   una decisión real en cualquier momento de la partida.
+
+## Ganancias sin conexión y recompensa diaria
+
+No entran en el simulador (mide sesiones de juego), así que sus límites se eligieron para que
+ayuden a quien vuelve sin sustituir al juego activo:
+
+- **Sin conexión** (`Economy.Offline*`): al volver, el servidor paga el 25 % de la producción
+  estable (sin eventos ni Void Surge) por el tiempo fuera, con un máximo de 8 h: como mucho
+  2 h de producción activa. Ausencias de menos de 5 min no dan nada (cambios de servidor). La
+  ventaja de rebirth *Night Shift* sube el porcentaje un 10 % por nivel (máximo 75 %). La
+  Box Printer guarda hasta 3 cajas.
+- **Diaria** (`Config/Daily`): 7 días que se repiten; la racha se pierde si se salta un día
+  (UTC). Los días de Energy dan entre 2 y 10 minutos de la producción actual (con mínimo para
+  jugadores nuevos); los días 3 y 7 dan *Daily Crates* (Rare o mejor, probabilidades visibles
+  en *Collection → Odds*).
+
