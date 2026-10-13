@@ -15,6 +15,7 @@ export type Runtime = {
 	production: Production.Result?,
 	dirty: boolean,
 	printerAt: number?,
+	printerBlocked: boolean?,
 	surgeNextAt: number?,
 	surgeEndsAt: number,
 }
@@ -136,8 +137,11 @@ function Simulation.tick(profile: Profile, runtime: Runtime, dt: number, now: nu
 			local ok, result = Boxes.printerOpen(profile, { now = now, rng = rng, production = production })
 			if ok then
 				table.insert(events.printed, result)
-			else
-				events.printerBlocked = result == "InventoryFull"
+				runtime.printerBlocked = false
+			elseif result == "InventoryFull" then
+				-- Report only the moment it becomes blocked, not every interval.
+				events.printerBlocked = not runtime.printerBlocked
+				runtime.printerBlocked = true
 			end
 		end
 	else

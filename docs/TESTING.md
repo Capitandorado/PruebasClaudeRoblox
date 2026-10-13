@@ -19,7 +19,7 @@ corren en **Lune** con un entorno simulado de Roblox (`tests/mock`):
 Se ejecutan los **scripts reales** del juego: el servidor arranca, los jugadores entran, la
 interfaz se construye y las pruebas pulsan sus botones.
 
-## Cobertura (86 pruebas)
+## Cobertura (87 pruebas)
 
 | Área | Ejemplos |
 | --- | --- |

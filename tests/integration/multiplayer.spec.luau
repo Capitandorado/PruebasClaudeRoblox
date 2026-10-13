@@ -108,6 +108,38 @@ return function(t)
 		t.eq(#rt:errors(), 0, errorsText(rt))
 	end)
 
+	t.test("announcements are reserved for extraordinary finds and throttled", function()
+		local rt = Fixture.server({ isStudio = true })
+		local Game = rt:requireIn("server", services(rt).Game)
+		local Rarities = rt:requireIn("server", rt.services.ReplicatedStorage.Shared.Config.Rarities)
+		local now = 1000
+		t.eq(Game.shouldAnnounce(Rarities.get("Epic"), true, now), false, "epic never global")
+		t.eq(Game.shouldAnnounce(Rarities.get("Legendary"), false, now), false, "repeat legendary stays local")
+		t.eq(Game.shouldAnnounce(Rarities.get("Legendary"), true, now), true, "first legendary is announced")
+		t.eq(Game.shouldAnnounce(Rarities.get("Mythic"), false, now), true)
+		-- Simulate a burst: after one announcement the cooldown blocks the next Mythic...
+		local player = Fixture.join(rt, { userId = 960 })
+		local session = Fixture.session(rt, player)
+		local announced = 0
+		local remote = Fixture.remotes(rt):FindFirstChild("Notify")
+		rt:asClient(player, function()
+			remote.OnClientEvent:Connect(function(kind)
+				if kind == "Announce" then
+					announced += 1
+				end
+			end)
+		end)
+		rt:asServer(function()
+			for _ = 1, 5 do
+				Game.announceGrants(session, { machineId = "starter_fabricator", grants = { { key = "void_nucleus||1", newArtifact = false } } })
+			end
+			-- ...but a Void find always goes through.
+			Game.announceGrants(session, { machineId = "starter_fabricator", grants = { { key = "the_singularity||1", newArtifact = false } } })
+		end)
+		rt:run(0.5, 0.1)
+		t.eq(announced, 2, "one mythic + the void find")
+	end)
+
 	t.test("global leaderboards push, fetch and fill the hub boards", function()
 		local backend = DataStore.newBackend()
 		local rt = Fixture.server({ backend = backend, isStudio = false })

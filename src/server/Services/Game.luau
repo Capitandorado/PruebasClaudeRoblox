@@ -51,6 +51,26 @@ end
 
 -- Box results: announcements and world effects ---------------------------------------
 
+-- Server-wide announcements must stand out without flooding the screen: only Mythic and
+-- above, or a Legendary found for the first time, with a global cooldown (the very rarest
+-- tiers always go through).
+Game.AnnounceCooldown = 4
+local lastAnnounce = -math.huge
+
+function Game.shouldAnnounce(rarity: Rarities.Rarity, newArtifact: boolean, now: number): boolean
+	if rarity.announce ~= "server" then
+		return false
+	end
+	local important = rarity.order >= Rarities.order("Mythic") or newArtifact
+	if not important then
+		return false
+	end
+	if rarity.order >= Rarities.order("Void") then
+		return true
+	end
+	return now - lastAnnounce >= Game.AnnounceCooldown
+end
+
 function Game.announceGrants(session: Session, result: any)
 	local bestOrder = 0
 	for _, grant in result.grants do
@@ -63,7 +83,9 @@ function Game.announceGrants(session: Session, result: any)
 			continue
 		end
 		bestOrder = math.max(bestOrder, rarity.order)
-		if rarity.announce == "server" then
+		local now = os.clock()
+		if Game.shouldAnnounce(rarity, grant.newArtifact == true, now) then
+			lastAnnounce = now
 			Net.notifyAll("Announce", {
 				name = session.player.DisplayName,
 				userId = session.userId,
