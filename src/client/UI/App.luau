@@ -1,0 +1,381 @@
+-- Root of the interface: ScreenGui, responsive scaling, window manager, toasts and the
+-- announcement banner. Windows live in UI/Windows and register themselves here.
+
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Messages = require(Shared.Config.Messages)
+local Signal = require(Shared.Util.Signal)
+
+local Theme = require(script.Parent.Theme)
+local C = require(script.Parent.Components)
+local Sound = require(script.Parent.Parent.Core.Sound)
+local Store = require(script.Parent.Parent.Core.Store)
+
+local App = {}
+
+App.WindowChanged = Signal.new()
+App.VisitChanged = Signal.new() -- (name: string?) while visiting another factory
+
+App.gui = nil :: ScreenGui?
+App.layers = {} :: { [string]: Frame }
+
+local Colors = Theme.Colors
+
+export type WindowHandle = {
+	frame: Frame,
+	refresh: (() -> ())?,
+	onOpen: ((args: any) -> ())?,
+	onClose: (() -> ())?,
+}
+
+export type WindowDef = {
+	name: string,
+	title: string,
+	icon: string,
+	size: Vector2?,
+	build: (content: Frame, app: any) -> WindowHandle,
+}
+
+local windowDefs: { [string]: WindowDef } = {}
+local windowHandles: { [string]: WindowHandle } = {}
+local windowFrames: { [string]: Frame } = {}
+local openWindow: string? = nil
+
+local function computeScale(viewport: Vector2): number
+	local scale = math.min(viewport.X / Theme.DesignSize.X, viewport.Y / Theme.DesignSize.Y)
+	return math.clamp(scale, 0.55, 1.3)
+end
+
+-- Current UI scale and the viewport size in design units.
+function App.scale(): number
+	local camera = workspace.CurrentCamera
+	return computeScale(if camera then camera.ViewportSize else Theme.DesignSize)
+end
+
+function App.designViewport(): Vector2
+	local camera = workspace.CurrentCamera
+	local viewport = if camera then camera.ViewportSize else Theme.DesignSize
+	return viewport / computeScale(viewport)
+end
+
+function App.isNarrow(): boolean
+	local camera = workspace.CurrentCamera
+	return camera ~= nil and camera.ViewportSize.X < 900
+end
+
+local function layer(name: string, zIndex: number): Frame
+	local frame = C.new("Frame", {
+		Name = name,
+		BackgroundTransparency = 1,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = zIndex,
+		Parent = App.gui,
+	})
+	App.layers[name] = frame
+	return frame
+end
+
+function App.start()
+	-- Roblox's player list would sit over the quest tracker and toasts (top right); the
+	-- game has its own Ranks window with every player's production and discoveries.
+	pcall(function()
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+	end)
+	local player = Players.LocalPlayer
+	local playerGui = player:WaitForChild("PlayerGui")
+	local gui = C.new("ScreenGui", {
+		Name = "VoidFactoryUI",
+		ResetOnSpawn = false,
+		IgnoreGuiInset = false,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+	})
+	App.gui = gui
+	local uiScale = C.new("UIScale", { Parent = gui })
+	local camera = workspace.CurrentCamera
+	local function rescale()
+		if camera then
+			uiScale.Scale = computeScale(camera.ViewportSize)
+		end
+	end
+	rescale()
+	if camera then
+		camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
+	end
+	layer("Hud", 1)
+	layer("Windows", 5)
+	layer("Overlay", 10)
+	local toasts = C.new("Frame", {
+		Name = "Toasts",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -12, 0, 118),
+		Size = UDim2.fromOffset(300, 320),
+		BackgroundTransparency = 1,
+		Parent = App.layers.Overlay,
+	})
+	C.list(Enum.FillDirection.Vertical, 6, Enum.HorizontalAlignment.Right).Parent = toasts
+	gui.Parent = playerGui
+end
+
+-- Toasts --------------------------------------------------------------------------------
+
+local TOAST_COLORS = {
+	info = Colors.Accent,
+	success = Colors.Good,
+	warning = Colors.Warning,
+	error = Colors.Bad,
+}
+
+function App.toast(text: string, kind: string?)
+	local overlay = App.layers.Overlay
+	local container = overlay and overlay:FindFirstChild("Toasts")
+	if not container then
+		return
+	end
+	local color = TOAST_COLORS[kind or "info"] or Colors.Accent
+	local existing = {}
+	for _, child in container:GetChildren() do
+		if child:IsA("Frame") then
+			table.insert(existing, child)
+		end
+	end
+	if #existing >= 4 then
+		existing[1]:Destroy()
+	end
+	local toast = C.panel({
+		Name = "Toast",
+		Size = UDim2.fromOffset(300, 46),
+		BackgroundColor3 = Colors.Panel,
+		Parent = container,
+	})
+	C.new("Frame", {
+		Size = UDim2.new(0, 5, 1, -12),
+		Position = UDim2.fromOffset(6, 6),
+		BackgroundColor3 = color,
+		BorderSizePixel = 0,
+		Children = { C.corner(3) },
+		Parent = toast,
+	})
+	C.text({
+		Name = "Text",
+		Text = text,
+		TextSize = 16,
+		Size = UDim2.new(1, -24, 1, 0),
+		Position = UDim2.fromOffset(18, 0),
+		Parent = toast,
+	})
+	local scale = C.new("UIScale", { Scale = 0.6, Parent = toast })
+	C.tween(scale, 0.18, { Scale = 1 }, Enum.EasingStyle.Back)
+	task.delay(3.2, function()
+		if toast.Parent then
+			C.tween(scale, 0.15, { Scale = 0.01 })
+			task.wait(0.16)
+			toast:Destroy()
+		end
+	end)
+end
+
+-- Shows the friendly message for a failed server response.
+function App.errorText(err: string?): string
+	return Messages[err or ""] or Messages.ServerError
+end
+
+function App.showError(err: string?)
+	App.toast(App.errorText(err), "error")
+	Sound.play("Error")
+end
+
+-- Windows -------------------------------------------------------------------------------
+
+function App.registerWindow(def: WindowDef)
+	windowDefs[def.name] = def
+end
+
+local function buildWindow(name: string): Frame
+	local def = windowDefs[name]
+	local size = def.size or Vector2.new(560, 460)
+	local frame = C.panel({
+		Name = "Window_" .. name,
+		AnchorPoint = Vector2.new(1, 0.5),
+		-- A little below centre so even the tallest window clears the quest tracker.
+		Position = UDim2.new(1, -14, 0.5, 16),
+		Size = UDim2.fromOffset(size.X, size.Y),
+		Visible = false,
+		BackgroundColor3 = Colors.Panel,
+		Parent = App.layers.Windows,
+	})
+	C.gradient(Color3.fromRGB(255, 255, 255), Color3.fromRGB(205, 200, 235)).Parent = frame
+	-- Thick bright frame, so windows pop over the 3D world like in current simulators.
+	local frameStroke = frame:FindFirstChildOfClass("UIStroke") :: UIStroke
+	frameStroke.Color = Color3.fromRGB(150, 120, 255)
+	frameStroke.Thickness = 3
+	frameStroke.Transparency = 0
+	C.new("UISizeConstraint", { MaxSize = Vector2.new(size.X, size.Y) }).Parent = frame
+	C.new("UIScale", { Name = "PopScale", Parent = frame })
+	-- Title "pill": coloured gradient band with an outlined cartoon title.
+	local header = C.new("Frame", {
+		Name = "Header",
+		Size = UDim2.new(1, -12, 0, 44),
+		Position = UDim2.fromOffset(6, 5),
+		Children = { C.corner(Theme.Corner) },
+		Parent = frame,
+	})
+	C.paint(header, Color3.fromRGB(160, 110, 255), Color3.fromRGB(90, 50, 200))
+	C.outline(header, Color3.fromRGB(40, 20, 90), 2)
+	local title = C.text({
+		Name = "Title",
+		Text = def.icon .. "  " .. string.upper(def.title),
+		FontFace = Theme.Fonts.Title,
+		TextColor3 = Color3.new(1, 1, 1),
+		Size = UDim2.new(1, -70, 1, -10),
+		Position = UDim2.fromOffset(14, 5),
+		Parent = header,
+	})
+	C.fitText(title, 24, 12)
+	C.outline(title, Color3.fromRGB(40, 20, 90), 2, true)
+	C.candyButton({
+		name = "Close",
+		text = "X",
+		top = Color3.fromRGB(255, 120, 120),
+		bottom = Color3.fromRGB(215, 40, 60),
+		size = UDim2.fromOffset(34, 34),
+		position = UDim2.new(1, -40, 0, 4),
+		textSize = 20,
+		parent = header,
+		onClick = function()
+			App.closeWindow()
+		end,
+	})
+	local content = C.new("Frame", {
+		Name = "Content",
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(14, 54),
+		Size = UDim2.new(1, -28, 1, -66),
+		ClipsDescendants = true,
+		Parent = frame,
+	})
+	windowHandles[name] = def.build(content, App)
+	windowFrames[name] = frame
+	return frame
+end
+
+local function reducedMotion(): boolean
+	return Store.profile ~= nil and Store.profile.settings.reducedEffects == true
+end
+
+-- Cards and rows of a freshly opened window pop in one after another.
+local function animateEntrance(content: Instance)
+	if reducedMotion() then
+		return
+	end
+	local container = content:FindFirstChildWhichIsA("ScrollingFrame", true)
+	if not container then
+		return
+	end
+	local items = {}
+	for _, child in container:GetChildren() do
+		if child:IsA("GuiObject") and child.Visible and not child:FindFirstChildOfClass("UIScale") then
+			table.insert(items, child)
+		end
+	end
+	table.sort(items, function(a, b)
+		return a.LayoutOrder < b.LayoutOrder
+	end)
+	for index, item in items do
+		if index > 14 then
+			break
+		end
+		local scale = C.new("UIScale", { Name = "EnterScale", Scale = 0.88, Parent = item })
+		task.delay(index * 0.03, function()
+			local tween = C.tween(scale, 0.22, { Scale = 1 }, Enum.EasingStyle.Back)
+			tween.Completed:Connect(function()
+				scale:Destroy()
+			end)
+		end)
+	end
+end
+
+function App.openWindow(name: string, args: any?)
+	if not windowDefs[name] then
+		return
+	end
+	if openWindow and openWindow ~= name then
+		App.closeWindow(true)
+	end
+	local frame = windowFrames[name] or buildWindow(name)
+	local handle = windowHandles[name]
+	openWindow = name
+	frame.Visible = true
+	local popScale = frame:FindFirstChild("PopScale") :: UIScale
+	popScale.Scale = 0.85
+	C.tween(popScale, 0.18, { Scale = 1 }, Enum.EasingStyle.Back)
+	if handle.onOpen then
+		handle.onOpen(args)
+	end
+	if handle.refresh then
+		handle.refresh()
+	end
+	animateEntrance(frame)
+	Sound.play("UIClick")
+	App.WindowChanged:Fire(name)
+end
+
+function App.closeWindow(silent: boolean?)
+	if not openWindow then
+		return
+	end
+	local name = openWindow
+	openWindow = nil
+	local frame = windowFrames[name]
+	local handle = windowHandles[name]
+	if frame then
+		if silent or reducedMotion() then
+			frame.Visible = false
+		else
+			-- Shrink away quickly; switching windows (silent) hides at once.
+			local popScale = frame:FindFirstChild("PopScale") :: UIScale
+			C.tween(popScale, 0.1, { Scale = 0.9 })
+			task.delay(0.1, function()
+				if openWindow ~= name then
+					frame.Visible = false
+				end
+			end)
+		end
+	end
+	if handle and handle.onClose then
+		handle.onClose()
+	end
+	if not silent then
+		App.WindowChanged:Fire(nil)
+	end
+end
+
+function App.toggleWindow(name: string)
+	if openWindow == name then
+		App.closeWindow()
+	else
+		App.openWindow(name)
+	end
+end
+
+function App.currentWindow(): string?
+	return openWindow
+end
+
+function App.refreshWindow(name: string?)
+	local target = name or openWindow
+	if target and target == openWindow then
+		local handle = windowHandles[target]
+		if handle and handle.refresh then
+			handle.refresh()
+		end
+	end
+end
+
+function App.windowFrame(name: string): Frame?
+	return windowFrames[name]
+end
+
+return App
